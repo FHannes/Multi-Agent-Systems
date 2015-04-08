@@ -1,0 +1,15 @@
+Chosen topics:
+
+- Hybrid architectures
+- Gradient field
+- Social laws
+
+Possible problems:
+
+- Do problematic situations (e.g. deadlocks) occur when using a gradient field?
+- When a package has been waiting for a long time, will adjusting field intensity help? Maybe also relevant for resolving deadlocks. (-> social laws)
+- When many packages are clustered in the same area, will it help if they collectively emit a more attractive force?
+- Is it interesting to have an agent emit a more repulsive force when approaching a package?
+- When an agent has picked up a package, how does less repulsion influence other agents?
+- When an agent is carrying a package, does it positively influence delivery time if it repulses more?
+
