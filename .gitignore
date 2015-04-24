@@ -68,4 +68,6 @@ local.properties
 .idea
 *.iml
 *.ipr
-target
+out/**
+target/**
+doc/**
