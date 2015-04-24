@@ -17,7 +17,7 @@ package be.kuleuven.cs.mas;
 
 import java.util.LinkedList;
 
-import be.kuleuven.cs.mas.gradients.FieldEmitter;
+import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import com.github.rinde.rinsim.core.TickListener;
