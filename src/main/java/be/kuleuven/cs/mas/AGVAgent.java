@@ -17,6 +17,7 @@ package be.kuleuven.cs.mas;
 
 import java.util.LinkedList;
 
+import be.kuleuven.cs.mas.gradients.FieldEmitter;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import com.github.rinde.rinsim.core.TickListener;
@@ -27,7 +28,7 @@ import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
-class AGVAgent implements TickListener, MovingRoadUser {
+class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
     private final RandomGenerator rng;
     private Optional<CollisionGraphRoadModel> roadModel;
     private Optional<Point> destination;
@@ -77,5 +78,15 @@ class AGVAgent implements TickListener, MovingRoadUser {
 
     @Override
     public void afterTick(TimeLapse timeLapse) {}
+
+    @Override
+    public double getStrength() {
+        return 0;
+    }
+
+    @Override
+    public Point getPosition() {
+        return null;
+    }
 
 }
