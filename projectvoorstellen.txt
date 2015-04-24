@@ -1,8 +1,8 @@
 Chosen topics:
 
-- Hybrid architectures
+- Hybrid architecture
 - Gradient field
-- Social laws
+- Conventions
 
 Possible problems:
 
@@ -13,3 +13,11 @@ Possible problems:
 - When an agent has picked up a package, how does less repulsion influence other agents?
 - When an agent is carrying a package, does it positively influence delivery time if it repulses more?
 
+Possible additional questions:
+- Direct relationship between waiting time of parcel and strength of (repulsive) field?
+- Is it interesting to have an agent emit a more repulsive force when approaching a package?
+
+Final questions to research:
+- If a parcel has already been waiting a long time (and has already been picked up), will strengthening the AGV’s repulsive field have a positive effect?
+- If a parcel has not yet been picked up and a threshold is reached, will it help if its gradient field is made stronger?
+- Direct relationship between waiting time of parcel and strength of (repulsive) field?
