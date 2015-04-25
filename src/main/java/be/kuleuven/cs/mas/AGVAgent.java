@@ -15,8 +15,9 @@
  */
 package be.kuleuven.cs.mas;
 
-import java.util.LinkedList;
+import java.util.*;
 
+import be.kuleuven.cs.mas.gradientfield.EmitterListener;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import org.apache.commons.math3.random.RandomGenerator;
 
@@ -33,6 +34,7 @@ class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
     private Optional<CollisionGraphRoadModel> roadModel;
     private Optional<Point> destination;
     private LinkedList<Point> path;
+    private Set<EmitterListener> listeners = new HashSet<>();
 
     AGVAgent(RandomGenerator r) {
         rng = r;
@@ -87,6 +89,16 @@ class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
     @Override
     public Point getPosition() {
         return null;
+    }
+
+    @Override
+    public void addListener(EmitterListener listener) {
+        listeners.add(listener);
+    }
+
+    @Override
+    public void removeListener(EmitterListener listener) {
+        listeners.remove(listener);
     }
 
 }
