@@ -17,7 +17,6 @@ package be.kuleuven.cs.mas;
 
 import java.util.*;
 
-import be.kuleuven.cs.mas.gradientfield.EmitterListener;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import org.apache.commons.math3.random.RandomGenerator;
 
@@ -30,11 +29,11 @@ import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
 class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
+
     private final RandomGenerator rng;
     private Optional<CollisionGraphRoadModel> roadModel;
     private Optional<Point> destination;
     private LinkedList<Point> path;
-    private Set<EmitterListener> listeners = new HashSet<>();
 
     AGVAgent(RandomGenerator r) {
         rng = r;
@@ -89,16 +88,6 @@ class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
     @Override
     public Point getPosition() {
         return null;
-    }
-
-    @Override
-    public void addListener(EmitterListener listener) {
-        listeners.add(listener);
-    }
-
-    @Override
-    public void removeListener(EmitterListener listener) {
-        listeners.remove(listener);
     }
 
 }

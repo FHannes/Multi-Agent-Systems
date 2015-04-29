@@ -1,5 +1,7 @@
 package be.kuleuven.cs.mas.gradientfield;
 
+import be.kuleuven.cs.mas.gradientfield.crawler.DistanceMap;
+import be.kuleuven.cs.mas.gradientfield.crawler.GraphCrawler;
 import com.github.rinde.rinsim.core.model.AbstractModel;
 import com.github.rinde.rinsim.core.model.ModelProvider;
 import com.github.rinde.rinsim.core.model.ModelReceiver;
@@ -15,45 +17,57 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class GradientModel extends AbstractModel<FieldEmitter> implements ModelReceiver, EmitterListener {
+public class GradientModel extends AbstractModel<FieldEmitter> implements ModelReceiver {
 
     private Graph<? extends ConnectionData> graph;
+    private GraphCrawler graphCrawler;
+
     private Set<FieldEmitter> emitters = new HashSet<>();
-    private Map<Point, InfluenceStore> pointEmitters = new HashMap<>();
+    private Map<Point, DistanceMap> distanceMaps = new HashMap<>();
 
     @Nullable
     private PDPModel pdpModel;
 
-    private void addEmitter(FieldEmitter emitter) {
-        emitters.add(emitter);
-        emitter.addListener(this);
-        updateEmitter(emitter);
+    public DistanceMap getDistanceMap(Point point) {
+        if (distanceMaps.containsKey(point)) {
+            return distanceMaps.get(point);
+        }
+
+        DistanceMap result = graphCrawler.crawl(point);
+        distanceMaps.put(point, result);
+        return result;
     }
 
-    private void clearEmitterInfluence(FieldEmitter emitter) {
-        pointEmitters.values().forEach(store -> store.removeInfluence(emitter));
+    public double getGradient(Point point, Set<FieldEmitter> excludedEmitters) {
+        double influence = 0D;
+        for (FieldEmitter emitter : emitters) {
+            if (excludedEmitters.contains(emitter)) {
+                continue;
+            }
+
+            DistanceMap distanceMap = getDistanceMap(emitter.getPosition());
+            double emitterInfluence = distanceMap.getMaxDistance() - distanceMap.getDistance(point);
+            if (emitterInfluence < 0D) {
+                emitterInfluence = 0D;
+            }
+            influence += emitterInfluence * emitter.getStrength();
+        }
+        return influence;
     }
 
-    private void updateEmitter(FieldEmitter emitter) {
-        clearEmitterInfluence(emitter);
-
-        // TODO: Propagate emitter influence through the directional graph
-    }
-
-    private void removeEmitter(FieldEmitter emitter) {
-        clearEmitterInfluence(emitter);
-        emitters.remove(emitter);
+    public double getGradient(Point point) {
+        return getGradient(point, new HashSet<>());
     }
 
     @Override
     public boolean register(FieldEmitter element) {
-        addEmitter(element);
+        emitters.add(element);
         return true;
     }
 
     @Override
     public boolean unregister(FieldEmitter element) {
-        removeEmitter(element);
+        emitters.remove(element);
         return true;
     }
 
@@ -61,11 +75,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     public void registerModelProvider(ModelProvider mp) {
         pdpModel = mp.tryGetModel(PDPModel.class);
         graph = mp.getModel(CollisionGraphRoadModel.class).getGraph();
-    }
-
-    @Override
-    public void onUpdatedPosition(FieldEmitter emitter) {
-        updateEmitter(emitter);
+        graphCrawler = new GraphCrawler(graph);
     }
 
 }

@@ -18,8 +18,4 @@ public interface FieldEmitter {
      */
     Point getPosition();
 
-    void addListener(EmitterListener listener);
-
-    void removeListener(EmitterListener listener);
-
 }
