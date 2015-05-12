@@ -10,19 +10,23 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import static com.google.common.collect.Lists.newArrayList;
 
 public class Main {
 
     private static final double VEHICLE_LENGTH = 2d;
+    private static final int GRAPH_COLS = 8;
+    private static final int GRAPH_ROWS = 7;
 
-    static ImmutableTable<Integer, Integer, Point> createMatrix(int cols, int rows, Point offset) {
+    static ImmutableTable<Integer, Integer, Point> createMatrix(int cols, int rows) {
         final ImmutableTable.Builder<Integer, Integer, Point> builder = ImmutableTable.builder();
         for (int c = 0; c < cols; c++) {
             for (int r = 0; r < rows; r++) {
-                builder.put(r, c, new Point(
-                        offset.x + c * VEHICLE_LENGTH * 2,
-                        offset.y + r * VEHICLE_LENGTH * 2));
+                builder.put(r, c, new Point(c * VEHICLE_LENGTH * 2, r * VEHICLE_LENGTH * 2));
             }
         }
         return builder.build();
@@ -31,7 +35,7 @@ public class Main {
     static ListenableGraph<LengthData> createGraph() {
         final Graph<LengthData> g = new TableGraph<>();
 
-        final Table<Integer, Integer, Point> matrix = createMatrix(8, 7, new Point(0, 0));
+        final Table<Integer, Integer, Point> matrix = createMatrix(GRAPH_COLS, GRAPH_ROWS);
 
         for (int i = 0; i < matrix.columnMap().size(); i++) {
             Iterable<Point> path;
@@ -48,6 +52,14 @@ public class Main {
                 matrix.rowKeySet().size() - 2).values())));
 
         return new ListenableGraph<>(g);
+    }
+
+    static Collection<Point> getDropOffSites() {
+        List<Point> sites = new ArrayList<>();
+        for (int r = 0; r < GRAPH_ROWS; r++) {
+            sites.add(new Point((GRAPH_COLS - 1) * VEHICLE_LENGTH * 2, r * VEHICLE_LENGTH * 2));
+        }
+        return sites;
     }
 
     public static void main(String[] args) {
