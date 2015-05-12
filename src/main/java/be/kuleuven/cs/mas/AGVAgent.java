@@ -1,23 +1,10 @@
-/*
- * Copyright (C) 2011-2015 Rinde van Lon, iMinds-DistriNet, KU Leuven
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package be.kuleuven.cs.mas;
 
 import java.util.*;
 
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
+import com.github.rinde.rinsim.geom.ConnectionData;
+import com.github.rinde.rinsim.geom.Graph;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import com.github.rinde.rinsim.core.TickListener;
@@ -32,6 +19,7 @@ class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
 
     private final RandomGenerator rng;
     private Optional<CollisionGraphRoadModel> roadModel;
+    private Graph<? extends ConnectionData> graph;
     private Optional<Point> destination;
     private LinkedList<Point> path;
 
@@ -45,12 +33,12 @@ class AGVAgent implements TickListener, MovingRoadUser, FieldEmitter {
     @Override
     public void initRoadUser(RoadModel model) {
         roadModel = Optional.of((CollisionGraphRoadModel) model);
+        graph = roadModel.get().getGraph();
         Point p;
         do {
             p = model.getRandomPosition(rng);
         } while (roadModel.get().isOccupied(p));
         roadModel.get().addObjectAt(this, p);
-
     }
 
     @Override
