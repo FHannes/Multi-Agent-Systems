@@ -12,10 +12,8 @@ import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class GradientModel extends AbstractModel<FieldEmitter> implements ModelReceiver {
 
@@ -56,7 +54,20 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     }
 
     public double getGradient(Point point) {
-        return getGradient(point, new HashSet<>());
+        return getGradient(point, Collections.emptySet());
+    }
+
+    public Point getGradientTarget(FieldEmitter emitter) {
+        Set<FieldEmitter> exclusion = new HashSet<>();
+        exclusion.add(emitter);
+
+        Map<Point, Double> gradientValues = graph.getOutgoingConnections(emitter.getPosition()).stream().collect(
+                Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
+        );
+
+        return gradientValues.keySet().stream().min(
+                (p1, p2) -> gradientValues.get(p1) - gradientValues.get(p2) < 0 ? -1 : 1
+        ).orElse(null);
     }
 
     @Override
