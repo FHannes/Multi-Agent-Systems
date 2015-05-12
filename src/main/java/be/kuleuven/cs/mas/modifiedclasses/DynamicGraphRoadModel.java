@@ -169,61 +169,6 @@ public class DynamicGraphRoadModel extends GraphRoadModel {
     return connMap.containsKey(graph.getConnection(from, to))
         || posMap.containsKey(from) || posMap.containsKey(to);
   }
-  
-  /**
-   * Checks whether there is a {@link RoadUser} on the connection between
-   * <code>from</code> and <code>to</code>.
-   * @param from The start point of a connection.
-   * @param to The end point of a connection.
-   * @return <code>true</code> if a {@link RoadUser} occupies either
-   *         <code>from</code> or the connection between
-   *         <code>from</code> and <code>to</code>, <code>false</code>
-   *         otherwise.
-   * @throws IllegalArgumentException if no connection exists between
-   *           <code>from</code> and <code>to</code>.
-   */
-  public boolean hasRoadUserOnIgnoreTo(Point from, Point to) {
-	    checkArgument(graph.hasConnection(from, to),
-	            "There is no connection between %s and %s.", from, to);
-	        return connMap.containsKey(graph.getConnection(from, to))
-	            || posMap.containsKey(from);
-  }
-  
-  /**
-   * Checks whether there is a {@link RoadUser} on the connection between
-   * <code>from</code> and <code>to</code>.
-   * @param from The start point of a connection.
-   * @param to The end point of a connection.
-   * @return <code>true</code> if a {@link RoadUser} occupies either
-   *         <code>to</code> or the connection between
-   *         <code>from</code> and <code>to</code>, <code>false</code>
-   *         otherwise.
-   * @throws IllegalArgumentException if no connection exists between
-   *           <code>from</code> and <code>to</code>.
-   */
-  public boolean hasRoadUserOnIgnoreFrom(Point from, Point to) {
-	    checkArgument(graph.hasConnection(from, to),
-	            "There is no connection between %s and %s.", from, to);
-	        return connMap.containsKey(graph.getConnection(from, to))
-	            || posMap.containsKey(to);
-  }
-  
-  /**
-   * Checks whether there is a {@link RoadUser} on the connection between
-   * <code>from</code> and <code>to</code>.
-   * @param from The start point of a connection.
-   * @param to The end point of a connection.
-   * @return <code>true</code> if a {@link RoadUser} occupies the connection between
-   *         <code>from</code> and <code>to</code>, <code>false</code>
-   *         otherwise.
-   * @throws IllegalArgumentException if no connection exists between
-   *           <code>from</code> and <code>to</code>.
-   */
-  public boolean hasRoadUserOnIgnoreFromAndTo(Point from, Point to) {
-	    checkArgument(graph.hasConnection(from, to),
-	            "There is no connection between %s and %s.", from, to);
-	        return connMap.containsKey(graph.getConnection(from, to));
-  }
 
   @Override
   public void removeObject(RoadUser object) {

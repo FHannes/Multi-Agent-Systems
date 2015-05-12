@@ -47,7 +47,7 @@ public class VisualSensor {
 			PointQueueEntry toCheck = toProcess.poll();
 			boolean added = false;
 			
-			// check if a RoadUser occupies the point or is driving towards it from the previous point
+			// check if a RoadUser occupies the point or occupies the connection between it and the previous point
 			// with respect to the point of view of the VisualSensorOwner
 			if (this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint())) {
 				toReturn.add(toCheck.getPoint());
