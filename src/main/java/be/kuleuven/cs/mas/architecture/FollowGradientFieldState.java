@@ -141,7 +141,7 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! this.getRequester().isPresent() || ! requester.equals(this.getRequester().get())) {
 			return;
 		}
 		this.setRequester(Optional.absent());
@@ -155,7 +155,7 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! this.getRequester().isPresent() || ! requester.equals(this.getRequester())) {
 			return;
 		}
 		if (! contents.get(i).getName().equals("propagator")) {
