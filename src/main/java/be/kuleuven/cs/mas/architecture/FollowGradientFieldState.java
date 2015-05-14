@@ -68,7 +68,7 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		long parcelWaitingSince = Long.parseLong(contents.get(i++).getValue());
 		if (this.getRequester().isPresent() &&
-				! requester.equals(this.getRequester()) &&
+				! requester.equals(this.getRequester().get()) &&
 				AgentState.trafficPriorityFunction(this.getRequester().get(), requester,
 						this.getParcelWaitingSince(), parcelWaitingSince)) {
 			// there is already a requester active and that one has higher priority than the requester currently
@@ -93,10 +93,10 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		int step = Integer.parseInt(contents.get(i).getValue());
-		if (this.getRequester().isPresent() && this.getRequester().equals(requester) && step < this.getStep()) {
+		if (this.getRequester().isPresent() && this.getRequester().get().equals(requester) && step < this.getStep()) {
 			return;
-		} else if ((this.getRequester().isPresent() && this.getRequester().equals(requester) &&  step > this.getStep()) ||
-				! this.getRequester().isPresent() || ! this.getRequester().equals(requester)) {
+		} else if ((this.getRequester().isPresent() && this.getRequester().get().equals(requester) &&  step > this.getStep()) ||
+				! this.getRequester().isPresent() || ! this.getRequester().get().equals(requester)) {
 			this.getForbiddenPoints().clear();
 		}
 		if (! this.getRequester().isPresent() || ! this.getRequester().get().equals(requester)) {
