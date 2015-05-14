@@ -57,8 +57,18 @@ public class Main {
 
     static Collection<Point> getDropOffSites() {
         List<Point> sites = new ArrayList<>();
-        for (int r = 0; r < GRAPH_ROWS; r++) {
-            sites.add(new Point((GRAPH_COLS - 1) * VEHICLE_LENGTH * 2, r * VEHICLE_LENGTH * 2));
+        for (int c = 0; c < GRAPH_COLS; c++) {
+            sites.add(new Point(c * VEHICLE_LENGTH * 2, (GRAPH_ROWS - 1) * VEHICLE_LENGTH * 2));
+        }
+        return sites;
+    }
+
+    static Collection<Point> getShelfSites() {
+        List<Point> sites = new ArrayList<>();
+        for (int c = 0; c < GRAPH_COLS; c++) {
+            for (int r = 1; r < GRAPH_ROWS - 1; r++) {
+                sites.add(new Point(c * VEHICLE_LENGTH * 2, r * VEHICLE_LENGTH * 2));
+            }
         }
         return sites;
     }
