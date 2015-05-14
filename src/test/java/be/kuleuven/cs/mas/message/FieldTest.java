@@ -55,9 +55,9 @@ public class FieldTest {
 	
 	@Test
 	public void toStringTest() {
-		assertEquals("name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP, testField.toString());
+		assertEquals("name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP, testField.toString());
 		System.out.println(testField.toString());
-		assertEquals("foo" + MessageContents.FIELD_SEP, emptyVal.toString());
+		assertEquals("foo" + AgentMessage.FIELD_SEP, emptyVal.toString());
 	}
 	
 	@Test

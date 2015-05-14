@@ -1,6 +1,7 @@
 package be.kuleuven.cs.mas.gradientfield;
 
 import com.github.rinde.rinsim.geom.Point;
+import com.google.common.base.Optional;
 
 /**
  * Thsi interface is implemented in all objects which emit a gradient field.
@@ -24,6 +25,6 @@ public interface FieldEmitter {
     /**
      * Returns the position of the emitter as a {@link Point}.
      */
-    Point getPosition();
+    Optional<Point> getPosition();
 
 }

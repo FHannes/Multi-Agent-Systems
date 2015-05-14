@@ -1,9 +1,7 @@
 package be.kuleuven.cs.mas.vision;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -78,7 +76,7 @@ public class VisualSensor {
 	}
 	
 	private Point getPosition() {
-		return this.getOwner().getPosition();
+		return this.getOwner().getPosition().get();
 	}
 	
 	private CollisionGraphRoadModel getRoadModel() {
@@ -91,7 +89,7 @@ public class VisualSensor {
 	
 	private int visualRange;
 	
-	private int getVisualRange() {
+	public int getVisualRange() {
 		return this.visualRange;
 	}
 	

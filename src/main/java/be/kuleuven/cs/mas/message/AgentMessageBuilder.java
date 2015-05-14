@@ -1,12 +1,15 @@
 package be.kuleuven.cs.mas.message;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MessageContentsBuilder {
+import org.apache.commons.lang3.tuple.Pair;
 
-	private static final Pattern REGEX = Pattern.compile(MessageContents.FIELD_SEP + "|" + MessageContents.NAME_VALUE_SEP);
+public class AgentMessageBuilder {
+
+	private static final Pattern REGEX = Pattern.compile(AgentMessage.FIELD_SEP + "|" + AgentMessage.NAME_VALUE_SEP);
 	
 	private StringBuilder sBuilder = new StringBuilder();
 	
@@ -14,14 +17,14 @@ public class MessageContentsBuilder {
 		return this.sBuilder;
 	}
 	
-	public MessageContents build() throws IllegalStateException {
-		MessageContents toReturn;
+	public AgentMessage build() throws IllegalStateException {
+		AgentMessage toReturn;
 		
 		if (this.isEmpty()) {
 			throw new IllegalStateException("cannot build empty message");
 		}
 		
-		toReturn = new MessageContents(this.getSBuilder().toString());
+		toReturn = new AgentMessage(this.getSBuilder().toString());
 		this.getSBuilder().setLength(0); // clear string builder
 		return toReturn;
 	}
@@ -43,15 +46,24 @@ public class MessageContentsBuilder {
 		} else return ! REGEX.matcher(field.getValue()).find();
 	}
 	
-	public void addField(Field field) throws IllegalArgumentException {
+	public AgentMessageBuilder addField(String name) throws IllegalArgumentException {
+		return this.addField(new Field(name));
+	}
+	
+	public AgentMessageBuilder addField(String name, String value) throws IllegalArgumentException {
+		return this.addField(new Field(name, value));
+	}
+	
+	public AgentMessageBuilder addField(Field field) throws IllegalArgumentException {
 		if (! this.isValidField(field)) {
 			throw new IllegalArgumentException("neither name nor value can contain field separator or name-value separator (or field was null)");
 		}
 		
 		this.append(field);
+		return this;
 	}
 	
-	public void addFields(List<Field> fields) throws IllegalArgumentException {
+	public AgentMessageBuilder addFields(List<Field> fields) throws IllegalArgumentException {
 		if (fields == null) {
 			throw new IllegalArgumentException("fields cannot be null");
 		}
@@ -66,6 +78,7 @@ public class MessageContentsBuilder {
 		for (Field field : fields) {
 			this.append(field);
 		}
+		return this;
 	}
 	
 	private void append(Field field) {

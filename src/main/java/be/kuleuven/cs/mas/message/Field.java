@@ -47,9 +47,9 @@ public class Field {
 	
 	public String toString() {
 		if (this.hasValue()) {
-			return this.getName() + MessageContents.NAME_VALUE_SEP + this.getValue() + MessageContents.FIELD_SEP;
+			return this.getName() + AgentMessage.NAME_VALUE_SEP + this.getValue() + AgentMessage.FIELD_SEP;
 		} else {
-			return this.getName() + MessageContents.FIELD_SEP;
+			return this.getName() + AgentMessage.FIELD_SEP;
 		}
 	}
 

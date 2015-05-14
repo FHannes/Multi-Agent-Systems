@@ -1,33 +1,35 @@
 I. An AGV (with parcel) wants to navigate to a point occupied by an AGV
-    -> send message: "move-aside;requester=requester-name;parcel-wait-time=millis;want-pos=x,y;step=00" with requester-name equal to its own name
-    -> wait until point is no longer occupied (so drive towards it) or other message hijacks priority
+    -> send message: "move-aside;requester=requester-name;propagator=requester-name;parcel-waiting-since=millis;want-pos=x,y;at-pos=x1,y1;step=00" with requester-name equal to its own name
+    -> wait until point is no longer occupied (so drive towards it), other message hijacks priority or time-out (retry with current step number)
 II. The AGV (with parcel) that triggered traffic jam coordination sees no occupied points along its route: send "home-free;requester=requester-name"
 III. The AGV (with parcel) that triggered traffic jam coordination is once again stuck
-    -> send new move-aside message with updated parcel-wait-time, want-pos and step
+    -> send new move-aside message with updated parcel-waiting-since, want-pos and step
 IV. An AGV (not currently involved in traffic jam) receives a move-aside message
     -> if want-pos does not equal either own position or next point in the path queue, ignore
-    -> compares parcel-wait-time with own waiting time
-        -> if equal: names of agents break the tie (agents have a number, smallest number wins; if own number smaller, then send own move-aside, otherwise activate "get out of the way" mode)
+    -> compares parcel-waiting-since with own waiting time
+        -> if equal: names of agents break the tie (agents have a number, smallest number wins; if own number smaller, then send own move-aside or reject (depending on if requester occupies next desired point),
+        otherwise activate "get out of the way" mode)
         -> if greater: send own move-aside (see point I.)
         -> if smaller: activate "get out of the way" mode, set step to initially received step (see message sent in I.)
 V. An AGV is in "get out of the way" mode
     -> randomly pick unoccupied point
-        -> if none available: randomly pick occupied point (not equal to the wants-pos of the message that triggered "get out of the way" mode)
-        and send message: "move-aside;requester=requester-name;parcel-wait-time=millis;want-pos=x1,y1;step=00" (requester-name and parcel-wait-time are the same
-        as received in I., albeit with passage of time accounted for with respect to parcel-wait-time, while wants-pos is equal to the randomly selected point),
+        -> if none available: randomly pick occupied point (not equal to the wants-pos or at-pos of the message that triggered "get out of the way" mode)
+        and send message: "move-aside;requester=requester-name;propagator=own-name;parcel-waiting-since=millis;want-pos=x2,y2;at-pos=x3,y3;step=00" (requester-name, parcel-waiting-since and step are the same
+        as received in I., albeit with passage of time accounted for with respect to parcel-waiting-since, while wants-pos is equal to the randomly selected point),
         then wait until a point becomes unoccupied
         -> otherwise: move to the point and wait until confirmation that requester is home free
     -> if move-aside message received:
         -> if "want-pos" is not equal to point currently occupied or next point in the path queue, ignore
         -> if requester is equal to the one who triggered "get out of the way" mode:
             -> if step number is less than or equal to the current step number, then ignore, otherwise get out of the way once more (see "randomly pick unoccupied point)
-        -> if requester is not equal and parcel-wait-time is larger than the current parcel-wait-time: message that triggered "get out of the way" mode is now the newly received message
+        -> if requester is not equal and parcel-waiting-since is larger than the current parcel-waiting-since: message that triggered "get out of the way" mode is now the newly received message
     -> if home-free message received:
         -> if requester is not equal: ignore
         -> otherwise: resume normal operation
 VI. An AGV is in "traverse gradient field" mode and receives move-aside message
     -> if AGV can make a move: ignore
-    -> otherwise: randomly select occupied point and propagate move-aside message (store message that triggered propagation)
+    -> otherwise: randomly select occupied point and propagate move-aside message (store message that triggered propagation) if want-pos is equal to current position, otherwise ignore,
+    and add want-pos to forbidden positions until home-free message received
     -> if receives move-aside in the future
         -> if requester is equal:
             -> if steps is equal: propagate message

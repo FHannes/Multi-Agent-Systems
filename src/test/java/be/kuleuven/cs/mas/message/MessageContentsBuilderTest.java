@@ -15,7 +15,7 @@ public class MessageContentsBuilderTest {
 	@Rule
 	public ExpectedException exception = ExpectedException.none();
 	
-	MessageContentsBuilder builder;
+	AgentMessageBuilder builder;
 	
 	Field field1;
 	Field field2;
@@ -23,10 +23,10 @@ public class MessageContentsBuilderTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		builder = new MessageContentsBuilder();
+		builder = new AgentMessageBuilder();
 		field1 = new Field("name", "agent01");
 		field2 = new Field("hold");
-		invalidField = new Field("waiting-time" + MessageContents.FIELD_SEP, "50s");
+		invalidField = new Field("waiting-time" + AgentMessage.FIELD_SEP, "50s");
 	}
 
 	@Test
@@ -55,62 +55,62 @@ public class MessageContentsBuilderTest {
 	
 	@Test
 	public void isValidFieldFalseFieldSepInNameNoValueTest() {
-		Field field = new Field("name" + MessageContents.FIELD_SEP);
+		Field field = new Field("name" + AgentMessage.FIELD_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseFieldSepInNameWithValueTest() {
-		Field field = new Field("name" + MessageContents.FIELD_SEP, "agent01");
+		Field field = new Field("name" + AgentMessage.FIELD_SEP, "agent01");
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseNameValSepInNameNoValueTest() {
-		Field field = new Field("name" + MessageContents.NAME_VALUE_SEP);
+		Field field = new Field("name" + AgentMessage.NAME_VALUE_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseNameValSepInNameWithValueTest() {
-		Field field = new Field("name" + MessageContents.NAME_VALUE_SEP, "agent01");
+		Field field = new Field("name" + AgentMessage.NAME_VALUE_SEP, "agent01");
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseBothSepsInNameNoValueTest() {
-		Field field = new Field("name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP);
+		Field field = new Field("name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseBothSepsInNameWithValueTest() {
-		Field field = new Field("name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP, "agent01");
+		Field field = new Field("name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP, "agent01");
 		assertFalse(builder.isValidField(field));
 	}
 
 	@Test
 	public void isValidFieldFalseFieldSepInValueTest() {
-		Field field = new Field("name", "agent01" + MessageContents.FIELD_SEP);
+		Field field = new Field("name", "agent01" + AgentMessage.FIELD_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseNameValSepInValueTest() {
-		Field field = new Field("name", "agent01" + MessageContents.NAME_VALUE_SEP);
+		Field field = new Field("name", "agent01" + AgentMessage.NAME_VALUE_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void isValidFieldFalseNameBothSepsInValueTest() {
-		Field field = new Field("name", "name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP);
+		Field field = new Field("name", "name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP);
 		assertFalse(builder.isValidField(field));
 	}
 	
 	@Test
 	public void addFieldInvalidTest() {
 		exception.expect(IllegalArgumentException.class);
-		builder.addField(new Field("name" + MessageContents.FIELD_SEP));
+		builder.addField(new Field("name" + AgentMessage.FIELD_SEP));
 		assertTrue(builder.isEmpty());
 	}
 	
@@ -136,8 +136,8 @@ public class MessageContentsBuilderTest {
 	@Test
 	public void buildValidTest() throws Exception {
 		builder.addField(field1);
-		MessageContents msg = builder.build();
-		assertEquals("name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP, Whitebox.invokeMethod(msg, "getMessage"));
+		AgentMessage msg = builder.build();
+		assertEquals("name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP, Whitebox.invokeMethod(msg, "getMessage"));
 		
 		assertTrue(builder.isEmpty());
 		builder.addFields(Arrays.asList(field1, field2));

@@ -3,14 +3,15 @@ package be.kuleuven.cs.mas.message;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.github.rinde.rinsim.core.model.comm.MessageContents;
 import com.google.common.base.Optional;
 
-public class MessageContents {
+public class AgentMessage implements MessageContents {
 
 	public static final String FIELD_SEP = ";";
 	public static final String NAME_VALUE_SEP = "=";
 	
-	MessageContents(String message) throws IllegalArgumentException {
+	AgentMessage(String message) throws IllegalArgumentException {
 		if (message == null) {
 			throw new IllegalArgumentException("message cannot be null");
 		}

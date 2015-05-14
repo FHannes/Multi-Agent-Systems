@@ -17,23 +17,23 @@ public class MessageContentsTest {
 	@Rule
 	ExpectedException exception = ExpectedException.none();
 	
-	String testMessage = "name" + MessageContents.NAME_VALUE_SEP + "agent01" + MessageContents.FIELD_SEP + "waiting-time" + MessageContents.NAME_VALUE_SEP + "50s" + MessageContents.FIELD_SEP + "hold" + MessageContents.FIELD_SEP;
-	MessageContents msgContents;
+	String testMessage = "name" + AgentMessage.NAME_VALUE_SEP + "agent01" + AgentMessage.FIELD_SEP + "waiting-time" + AgentMessage.NAME_VALUE_SEP + "50s" + AgentMessage.FIELD_SEP + "hold" + AgentMessage.FIELD_SEP;
+	AgentMessage msgContents;
 	
 	@Before
 	public void setUp() throws Exception {
-		msgContents = new MessageContents(testMessage);
+		msgContents = new AgentMessage(testMessage);
 	}
 
 	@Test
 	public void constructorNullMessageTest() {
 		exception.expect(IllegalArgumentException.class);
-		new MessageContents(null);
+		new AgentMessage(null);
 	}
 	
 	@Test
 	public void constructorValidMessageTest() throws Exception {
-		MessageContents message = new MessageContents(testMessage);
+		AgentMessage message = new AgentMessage(testMessage);
 		assertEquals(testMessage, Whitebox.invokeMethod(message, "getMessage"));
 	}
 	

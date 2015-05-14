@@ -43,7 +43,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
                 continue;
             }
 
-            DistanceMap distanceMap = getDistanceMap(emitter.getPosition());
+            DistanceMap distanceMap = getDistanceMap(emitter.getPosition().get());
             double emitterInfluence = distanceMap.getMaxDistance() - distanceMap.getDistance(point);
             if (emitterInfluence < 0D) {
                 emitterInfluence = 0D;
@@ -61,7 +61,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         Set<FieldEmitter> exclusion = new HashSet<>();
         exclusion.add(emitter);
 
-        Map<Point, Double> gradientValues = graph.getOutgoingConnections(emitter.getPosition()).stream().collect(
+        Map<Point, Double> gradientValues = graph.getOutgoingConnections(emitter.getPosition().get()).stream().collect(
                 Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
         );
 

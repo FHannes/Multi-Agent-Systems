@@ -21,6 +21,7 @@ public class Main {
     private static final double VEHICLE_LENGTH = 2d;
     private static final int GRAPH_COLS = 8;
     private static final int GRAPH_ROWS = 7;
+    private static final int VISUAL_RANGE = 2;
 
     static ImmutableTable<Integer, Integer, Point> createMatrix(int cols, int rows) {
         final ImmutableTable.Builder<Integer, Integer, Point> builder = ImmutableTable.builder();
@@ -70,7 +71,7 @@ public class Main {
                 .build();
 
         for (int i = 0; i < 20; i++) {
-            sim.register(new AGVAgent(sim.getRandomGenerator()));
+            sim.register(new AGVAgent(sim.getRandomGenerator(), VISUAL_RANGE));
         }
 
         View.create(sim)
