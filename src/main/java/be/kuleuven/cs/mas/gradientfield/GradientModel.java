@@ -70,6 +70,10 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         ).orElse(null);
     }
 
+    public List<FieldEmitter> getEmitters() {
+        return new ArrayList<>(emitters);
+    }
+
     @Override
     public boolean register(FieldEmitter element) {
         emitters.add(element);
