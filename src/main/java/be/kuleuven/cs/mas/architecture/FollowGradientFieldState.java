@@ -1,5 +1,6 @@
 package be.kuleuven.cs.mas.architecture;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import be.kuleuven.cs.mas.AGVAgent;
@@ -18,6 +19,7 @@ public class FollowGradientFieldState extends AgentState {
 	private Optional<String> requester;
 	private Optional<Point> nextSelectedPoint;
 	private Optional<Point> requestedPoint;
+	private Optional<List<String>> waitForList;
 	private long parcelWaitingSince = 0;
 	private int step = 0;
 	
@@ -54,6 +56,7 @@ public class FollowGradientFieldState extends AgentState {
 	private void processMoveAsideMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
+		boolean handleDeadlock = false;
 		
 		if (! contents.get(i).getName().equals("requester")) {
 			return;
@@ -63,11 +66,19 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("wait-for")) {
+			return;
+		}
+		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
+		if (this.hasDeadlock(waitForList)) {
+			handleDeadlock = true;
+		}
 		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
 			return;
 		}
 		long parcelWaitingSince = Long.parseLong(contents.get(i++).getValue());
-		if (this.getRequester().isPresent() &&
+		if (! handleDeadlock &&
+				this.getRequester().isPresent() &&
 				! requester.equals(this.getRequester().get()) &&
 				AgentState.trafficPriorityFunction(this.getRequester().get(), requester,
 						this.getParcelWaitingSince(), parcelWaitingSince)) {
@@ -88,6 +99,10 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		Point propagatorPos = Point.parsePoint(contents.get(i++).getValue());
+		if (handleDeadlock) {
+			this.sendRelease();
+			// TODO select new point different from the propagator's position and the previously selected point
+		}
 		if (! contents.get(i).getName().equals("step")) {
 			// invalid message, so ignore
 			return;
@@ -163,6 +178,7 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		String propagator = contents.get(i++).getValue();
 		this.getForbiddenPoints().removeAll(propagator);
+		this.sendRelease(); // release all agents this agent (indirectly) caused to activate "get out of the way"
 	}
 	
 	private void sendAck(String requester, String propagator) {
@@ -176,6 +192,13 @@ public class FollowGradientFieldState extends AgentState {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
+				.build());
+	}
+	
+	private void sendRelease() {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
+				.addField("requester", this.getRequester().get())
+				.addField("propagator", this.getAgent().getName())
 				.build());
 	}
 
@@ -233,5 +256,18 @@ public class FollowGradientFieldState extends AgentState {
 	
 	private void setRequestedPoint(Optional<Point> point) {
 		this.requestedPoint = point;
+	}
+	
+	private Optional<List<String>> getWaitForList() {
+		return this.waitForList;
+	}
+	
+	private List<String> getWaitForListWithSelf() throws IllegalStateException {
+		if (! this.getWaitForList().isPresent()) {
+			throw new IllegalStateException("should only be called if there is a wait-for list");
+		}
+		List<String> toReturn = new LinkedList<>(this.getWaitForList().get());
+		toReturn.add(this.getAgent().getName());
+		return toReturn;
 	}
 }

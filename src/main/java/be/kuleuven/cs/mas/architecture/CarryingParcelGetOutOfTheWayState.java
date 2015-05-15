@@ -2,6 +2,7 @@ package be.kuleuven.cs.mas.architecture;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -22,13 +23,15 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	private Point nextWantedPoint;
 	private boolean waitingOnOther = false;
 	private long timeOutCount = 0;
+	private List<String> waitForList;
 
-	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, long parcelWaitTime, int step, Point propagatorPos) {
+	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, List<String> waitForList, long parcelWaitTime, int step, Point propagatorPos) {
 		super(agent);
 		this.requester = requester;
 		this.propagator = propagator;
 		this.parcelWaitTime = parcelWaitTime;
 		this.step = step;
+		this.waitForList = waitForList;
 		
 		this.doMoveAside(propagatorPos);
 	}
@@ -101,6 +104,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.getAgent().getMessageBuilder().addField("move-aside")
 		.addField("requester", this.getRequester())
 		.addField("propagator", this.getAgent().getName())
+		.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
 		.addField("parcel-waiting-since", Long.toString(this.getParcelWaitTime()))
 		.addField("want-pos", this.getNextWantedPoint().toString())
 		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
@@ -133,6 +137,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	private void processMoveAside(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
+		boolean handleDeadlock = false;
 		
 		if (! contents.get(i).getName().equals("requester")) {
 			return;
@@ -142,6 +147,14 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			return;
 		}
 		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("wait-for")) {
+			return;
+		}
+		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
+		if (this.hasDeadlock(waitForList)) {
+			// there is a deadlock, but wait until position of propagator is known
+			handleDeadlock = true;
+		}
 		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
 			return;
 		}
@@ -158,6 +171,13 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			return;
 		}
 		Point propagatorPos = Point.parsePoint(contents.get(i++).getValue());
+		if (handleDeadlock) { // if there is a deadlock, it can now be handled properly
+			this.sendRelease();
+			this.doMoveAside(propagatorPos, this.getNextWantedPoint()); // try again, this time trying to move to a different point
+			// this will always work because only "get out of the way" agents at a junction will ever detect deadlock
+			// since the controller will detect it first in the other case
+			return;
+		}
 		if (! contents.get(i).getName().equals("step")) {
 			// invalid message, so ignore
 			return;
@@ -181,6 +201,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			this.setPropagator(propagator);
 			this.setParcelWaitTime(parcelWaitingSince);
 			this.setStep(step);
+			this.setWaitForList(waitForList);
 			this.setTimeOutCount(0);
 			this.setWaitingOnOther(false);
 			this.sendRelease();
@@ -249,6 +270,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			return;
 		}
 		// the propagator has released this agent from coordinating the traffic jam
+		this.sendRelease(); // propagate the release in order to release agents this agent is (indirectly) waiting on
 		this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), true)));
 	}
 	
@@ -264,12 +286,12 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		}
 	}
 	
-	private void doMoveAside(Point forbiddenPoint) {
-		Optional<Point> nextStep = agent.getRandomReachablePoint(new HashSet<Point>(Arrays.asList(forbiddenPoint)));
+	private void doMoveAside(Point... forbiddenPoints) {
+		Optional<Point> nextStep = agent.getRandomReachablePoint(new HashSet<Point>(Arrays.asList(forbiddenPoints)));
 		if (nextStep.isPresent()) {
 			this.setNextWantedPoint(nextStep.get());
 		} else {
-			nextStep = agent.getRandomNeighbourPoint(new HashSet<Point>(Arrays.asList(forbiddenPoint)));
+			nextStep = agent.getRandomNeighbourPoint(new HashSet<Point>(Arrays.asList(forbiddenPoints)));
 			// we assume that every point has a neighbour
 			this.setNextWantedPoint(nextStep.get());
 		}
@@ -333,5 +355,19 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 
 	private boolean timeOutOccurred() {
 		return this.getTimeOutCount() >= AgentState.RESEND_TIMEOUT;
+	}
+	
+	private List<String> getWaitForList() {
+		return this.waitForList;
+	}
+	
+	private void setWaitForList(List<String> waitForList) {
+		this.waitForList = waitForList;
+	}
+	
+	private List<String> getWaitForListWithSelf() {
+		List<String> toReturn = new LinkedList<>(this.getWaitForList());
+		toReturn.add(this.getAgent().getName());
+		return toReturn;
 	}
 }

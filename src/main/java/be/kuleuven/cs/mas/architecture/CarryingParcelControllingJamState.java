@@ -89,6 +89,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		this.getAgent().getMessageBuilder().addField("move-aside")
 		.addField("requester", this.getAgent().getName())
 		.addField("propagator", this.getAgent().getName())
+		.addField("wait-for", this.getAgent().getName())
 		.addField("parcel-waiting-since", Long.toString(this.getAgent().getParcel().get().getWaitingSince()))
 		.addField("want-pos", this.getNextWantedPoint().toString())
 		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
@@ -152,6 +153,9 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		}
 		String requester = contents.get(i++).getValue();
 		if (requester.equals(this.getAgent().getName())) {
+			// a deadlock has occurred; restart protocol
+			this.sendHomeFree();
+			this.resendMoveAside();
 			return;
 		}
 		if (! contents.get(i).getName().equals("propagator")) {
@@ -161,6 +165,10 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (propagator.equals(this.getAgent().getName())) {
 			return;
 		}
+		if (! contents.get(i).getName().equals("wait-for")) {
+			return;
+		}
+		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
 		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
 			return;
 		}
@@ -194,7 +202,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			int step = Integer.parseInt(contents.get(i).getValue());
 			// release all agents waiting on this agent
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), requester, propagator, parcelWaitingSince, step, propagatorPos)));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), requester, propagator, waitForList, parcelWaitingSince, step, propagatorPos)));
 		}
 	}
 

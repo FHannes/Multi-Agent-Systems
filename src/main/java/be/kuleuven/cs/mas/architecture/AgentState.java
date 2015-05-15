@@ -1,5 +1,8 @@
 package be.kuleuven.cs.mas.architecture;
 
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +23,7 @@ public abstract class AgentState {
 	
 	public static final long RESEND_TIMEOUT = 5000;
 	protected static final Pattern NUM_PATTERN = Pattern.compile("\\d+");
+	protected static final String DEADLOCK_SEP = ",";
 	
 	protected AGVAgent agent;
 	
@@ -75,5 +79,22 @@ public abstract class AgentState {
 			return Integer.parseInt(otherMatcher.group()) < Integer.parseInt(oneReqMatcher.group());
 		}
 
+	}
+	
+	protected static List<String> toWaitForList(String waitForString) {
+		return new LinkedList<String>(Arrays.asList(waitForString.split(DEADLOCK_SEP)));
+	}
+	
+	protected static String toWaitForString(List<String> waitForList) {
+		StringBuilder toReturn = new StringBuilder();
+		for (String ele : waitForList) {
+			toReturn.append(ele);
+			toReturn.append(DEADLOCK_SEP);
+		}
+		return toReturn.toString();
+	}
+	
+	protected boolean hasDeadlock(List<String> waitForList) {
+		return waitForList.contains(this.getAgent().getName());
 	}
 }

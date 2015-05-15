@@ -87,6 +87,11 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 				// somehow received own propagated move-aside request, so ignore
 				return;
 			}
+			if (! contents.get(i).getName().equals("wait-for")) {
+				// invalid message, so ignore
+				return;
+			}
+			List<String> waitForList = toWaitForList(contents.get(i++).getValue());
 			if (! contents.get(i).getName().equals("parcel-waiting-since")) {
 				// invalid message, so ignore
 				return;
@@ -125,7 +130,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 				.addField("propagator", propagator);
 				this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
 				int step = Integer.parseInt(contents.get(i).getValue());
-				this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), requester, propagator, parcelWaitTime, step, propagatorPos)));
+				this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), requester, propagator, waitForList, parcelWaitTime, step, propagatorPos)));
 			}
 		}
 	}
