@@ -73,11 +73,13 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     @Override
     public boolean register(FieldEmitter element) {
         emitters.add(element);
+        element.setModel(this);
         return true;
     }
 
     @Override
     public boolean unregister(FieldEmitter element) {
+        element.setModel(null);
         emitters.remove(element);
         return true;
     }
