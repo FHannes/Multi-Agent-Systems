@@ -18,7 +18,6 @@ public class FollowGradientFieldState extends AgentState {
 	private Multimap<String, Point> forbiddenPoints = LinkedHashMultimap.create();
 	private Optional<String> requester;
 	private Optional<Point> nextSelectedPoint;
-	private Optional<Point> requestedPoint;
 	private Optional<List<String>> waitForList;
 	private long parcelWaitingSince = 0;
 	private int step = 0;
@@ -115,11 +114,15 @@ public class FollowGradientFieldState extends AgentState {
 			this.getForbiddenPoints().clear();
 		}
 		if (! this.getRequester().isPresent() || ! this.getRequester().get().equals(requester)) {
+			if (this.getRequester().isPresent() && ! this.getRequester().get().equals(requester)) {
+				this.sendRelease();
+			}
 			this.setRequester(Optional.of(requester));
 			this.setParcelWaitingSince(parcelWaitingSince);
 		}
-		
+
 		this.setStep(step);
+		this.setWaitForList(Optional.of(waitForList));
 		this.getForbiddenPoints().put(propagator, propagatorPos);
 		this.getForbiddenPoints().put(propagator, requestedPoint);
 		this.sendAck(requester, propagator);
@@ -161,6 +164,9 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		this.setRequester(Optional.absent());
 		this.getForbiddenPoints().clear();
+		this.setWaitForList(Optional.absent());
+		this.setParcelWaitingSince(0);
+		this.setStep(0);
 	}
 	
 	private void processReleaseMessage(AgentMessage msg) {
@@ -177,8 +183,24 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		String propagator = contents.get(i++).getValue();
-		this.getForbiddenPoints().removeAll(propagator);
 		this.sendRelease(); // release all agents this agent (indirectly) caused to activate "get out of the way"
+		this.getForbiddenPoints().removeAll(propagator);
+		this.setRequester(Optional.absent());
+		this.setParcelWaitingSince(0);
+		this.setStep(0);
+		this.setWaitForList(Optional.absent());
+	}
+	
+	private void sendMoveAside() {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("move-aside")
+				.addField("requester", this.getRequester().get())
+				.addField("propagator", this.getAgent().getName())
+				.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
+				.addField("parcel-waiting-since", Long.toString(this.getParcelWaitingSince()))
+				.addField("want-pos", this.getNextSelectedPoint().get().toString())
+				.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
+				.addField("step", Integer.toString(this.getStep()))
+				.build());
 	}
 	
 	private void sendAck(String requester, String propagator) {
@@ -250,14 +272,6 @@ public class FollowGradientFieldState extends AgentState {
 		this.nextSelectedPoint = point;
 	}
 	
-	private Optional<Point> getRequestedPoint() {
-		return this.requestedPoint;
-	}
-	
-	private void setRequestedPoint(Optional<Point> point) {
-		this.requestedPoint = point;
-	}
-	
 	private Optional<List<String>> getWaitForList() {
 		return this.waitForList;
 	}
@@ -269,5 +283,9 @@ public class FollowGradientFieldState extends AgentState {
 		List<String> toReturn = new LinkedList<>(this.getWaitForList().get());
 		toReturn.add(this.getAgent().getName());
 		return toReturn;
+	}
+	
+	private void setWaitForList(Optional<List<String>> waitForList) {
+		this.waitForList = waitForList;
 	}
 }
