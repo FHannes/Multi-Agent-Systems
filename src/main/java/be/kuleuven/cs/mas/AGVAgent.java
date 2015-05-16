@@ -240,7 +240,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 		if (! this.getParcel().isPresent()) {
 			return;
 		}
-		this.path = new LinkedList<Point>(this.getRoadModel().getShortestPathTo(this, this.getParcel().get()));
+		this.path = new LinkedList<>(this.getRoadModel().getShortestPathTo(this, this.getParcel().get()));
 	}
 	
 	public Optional<Point> getRandomReachablePoint(Set<Point> excludeSet) {

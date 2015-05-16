@@ -19,7 +19,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	private Optional<Point> position;
 	private GradientModel gradientModel;
 	
-	public TimeAwareParcel(Point startPosition, Point pDestination,
+	TimeAwareParcel(Point startPosition, Point pDestination,
 			double pMagnitude, long currentTime) {
 		super(pDestination, 0, TimeWindow.ALWAYS, 0, TimeWindow.ALWAYS,
 				pMagnitude);

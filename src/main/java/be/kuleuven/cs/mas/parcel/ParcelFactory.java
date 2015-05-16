@@ -1,15 +1,19 @@
-package be.kuleuven.cs.mas.factory;
+package be.kuleuven.cs.mas.parcel;
 
 import be.kuleuven.cs.mas.GraphUtils;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
-import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import com.github.rinde.rinsim.geom.Point;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * A factory which can be sued to create instances of {@link TimeAwareParcel}.
+ */
 public class ParcelFactory {
+
+    public final static double MAGNITUDE = 1.0D;
 
     private Random random = new Random();
 
@@ -18,15 +22,14 @@ public class ParcelFactory {
      * to that model. It takes into account other parcels that may have already been added to the field.
      *
      * @param model
-     * @param pMagnitude
-     * @param currentTime
+     *        The given {@link GradientModel}.
      * @param outgoing
      *        The parcel generated has to be outgoing. This means that it is to be picked up from one of the shelves in
      *        the warehouse and transported to a drop-off site where the warehouse's I/O occurs.
      * @return A {@link TimeAwareParcel} which is added to the given {@link GradientModel}. The method can return null
      *         if all available source sites are already occupied by waiting parcels.
      */
-    public TimeAwareParcel makeParcel(GradientModel model, double pMagnitude, long currentTime, boolean outgoing) {
+    public TimeAwareParcel makeParcel(GradientModel model, boolean outgoing) {
         // Get set of shelf sites and drop-off sites
         List<Point> sources;
         List<Point> targets;
@@ -60,14 +63,14 @@ public class ParcelFactory {
         Point target = targets.get(random.nextInt(sources.size()));
 
         // Create and return emitter
-        return new TimeAwareParcel(source, target, pMagnitude, currentTime);
+        return new TimeAwareParcel(source, target, MAGNITUDE, System.currentTimeMillis());
     }
 
-    public TimeAwareParcel makeParcel(GradientModel model, double pMagnitude, long currentTime) {
+    public TimeAwareParcel makeParcel(GradientModel model) {
         boolean outgoing = random.nextBoolean();
-        TimeAwareParcel parcel = makeParcel(model, pMagnitude, currentTime, outgoing);
+        TimeAwareParcel parcel = makeParcel(model, outgoing);
         if (parcel == null) {
-            parcel = makeParcel(model, pMagnitude, currentTime, !outgoing);
+            parcel = makeParcel(model, !outgoing);
         }
         return parcel;
     }
