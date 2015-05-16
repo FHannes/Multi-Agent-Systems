@@ -147,15 +147,15 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	private void processMoveAsideMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
+		boolean sawOwnName = false;
 		
 		if (! contents.get(i).getName().equals("requester")) {
 			return;
 		}
 		String requester = contents.get(i++).getValue();
 		if (requester.equals(this.getAgent().getName())) {
-			// a deadlock has occurred; restart protocol
-			this.sendHomeFree();
-			this.resendMoveAside();
+			// monitor for possible deadlock
+			sawOwnName = true;
 			return;
 		}
 		if (! contents.get(i).getName().equals("propagator")) {
@@ -180,6 +180,11 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (! (this.getAgent().getPosition().equals(requestedPoint)
 				|| this.getAgent().getNextPointOnPath().equals(requestedPoint))) {
 			return;
+		}
+		if (sawOwnName) {
+			// deadlock has occurred, restart protocol
+			this.sendHomeFree();
+			this.resendMoveAside();
 		}
 		if (! contents.get(i).getName().equals("at-pos")) {
 			return;

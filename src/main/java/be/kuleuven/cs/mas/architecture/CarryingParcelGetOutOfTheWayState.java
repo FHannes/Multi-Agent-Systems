@@ -22,6 +22,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	private int step;
 	private Point nextWantedPoint;
 	private boolean waitingOnOther = false;
+	private boolean hasMoved = false;
 	private long timeOutCount = 0;
 	private List<String> waitForList;
 
@@ -54,13 +55,19 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		if (wasAlreadyWaiting) {
 			this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getStartTime());
 		}
+		
+		if (this.hasMoved()) {
+			return;
+		}
+		
 		Set<Point> occupiedPoints = this.getAgent().getOccupiedPointsInVisualRange();
 		if (! occupiedPoints.contains(this.getNextWantedPoint())) {
 			// we can indeed move forward
-			this.getAgent().followPath(timeLapse);
+			this.getAgent().followPath(this.getNextWantedPoint(), timeLapse);
 			if (this.getAgent().getPosition().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
 				this.setWaitingOnOther(false);
+				this.setHasMoved(true);
 				return;
 			}
 		}
@@ -185,9 +192,12 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		if (requester.equals(this.getRequester())) {
 			// check if the step has increased, in which case the agent must once again move out of the way
 			int step = Integer.parseInt(contents.get(i).getValue());
-			if (step > this.getStep()) {
+			if ((step > this.getStep()) ||
+					(this.hasMoved() && step == this.getStep())) { // must also move aside if the step remained the same
+				// but an earlier move aside was not enough to solve the problem
 				this.doMoveAside(propagatorPos);
 				this.setPropagator(propagator);
+				this.setWaitForList(waitForList);
 				this.setStep(step);
 				return;
 			}
@@ -295,6 +305,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			// we assume that every point has a neighbour
 			this.setNextWantedPoint(nextStep.get());
 		}
+		this.setHasMoved(false);
 	}
 	
 	private String getRequester() {
@@ -343,6 +354,14 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 
 	private void setWaitingOnOther(boolean waitingOnOther) {
 		this.waitingOnOther = waitingOnOther;
+	}
+
+	private boolean hasMoved() {
+		return hasMoved;
+	}
+
+	private void setHasMoved(boolean hasMoved) {
+		this.hasMoved = hasMoved;
 	}
 
 	private long getTimeOutCount() {

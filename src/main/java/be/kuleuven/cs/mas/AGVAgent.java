@@ -33,6 +33,7 @@ import com.google.common.base.Optional;
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -115,6 +116,10 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 
     public void followPath(TimeLapse timeLapse) {
     	this.getRoadModel().followPath(this, this.getPath(), timeLapse);
+    }
+    
+    public void followPath(Point point, TimeLapse timeLapse) {
+    	this.getRoadModel().followPath(this, new LinkedList<>(Arrays.asList(point)), timeLapse);
     }
     
     @Override
