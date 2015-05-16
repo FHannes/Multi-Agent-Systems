@@ -82,7 +82,7 @@ public abstract class AgentState {
 	}
 	
 	protected static List<String> toWaitForList(String waitForString) {
-		return new LinkedList<String>(Arrays.asList(waitForString.split(DEADLOCK_SEP)));
+		return new LinkedList<>(Arrays.asList(waitForString.split(DEADLOCK_SEP)));
 	}
 	
 	protected static String toWaitForString(List<String> waitForList) {

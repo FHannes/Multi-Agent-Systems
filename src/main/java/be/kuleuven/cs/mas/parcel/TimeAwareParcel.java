@@ -1,5 +1,7 @@
 package be.kuleuven.cs.mas.parcel;
 
+import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
+import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
@@ -8,18 +10,20 @@ import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.util.TimeWindow;
 import com.google.common.base.Optional;
 
-public class TimeAwareParcel extends Parcel {
+public class TimeAwareParcel extends Parcel implements FieldEmitter {
 
 	private long waitingSince;
 	private Optional<RoadModel> roadModel;
 	private Optional<PDPModel> pdpModel;
 	private boolean delivered = false;
+	private Optional<Point> position;
+	private GradientModel gradientModel;
 	
 	public TimeAwareParcel(Point startPosition, Point pDestination,
 			double pMagnitude, long currentTime) {
 		super(pDestination, 0, TimeWindow.ALWAYS, 0, TimeWindow.ALWAYS,
 				pMagnitude);
-		setStartPosition(startPosition);
+		setPosition(startPosition);
 		this.waitingSince = currentTime;
 	}
 
@@ -59,4 +63,33 @@ public class TimeAwareParcel extends Parcel {
 	public long getWaitingSince() {
 		return this.waitingSince;
 	}
+
+	protected void setPosition(Point position) {
+		super.setStartPosition(position);
+		this.position = Optional.of(position);
+	}
+
+	@Override
+	public void setModel(GradientModel model) {
+		this.gradientModel = model;
+	}
+
+	@Override
+	public double getStrength() {
+		// TODO: Regulate field strength (as function of <code>waitingSince</code>?)
+		return 0;
+	}
+
+	@Override
+	public Optional<Point> getPosition() {
+		return position;
+	}
+
+	/**
+	 * To be called when the parcel is picked up by an {@link be.kuleuven.cs.mas.AGVAgent}.
+	 */
+	public void notifyPickup() {
+		position = Optional.absent();
+	}
+
 }
