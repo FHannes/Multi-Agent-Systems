@@ -3,6 +3,7 @@ package be.kuleuven.cs.mas.parcel;
 import be.kuleuven.cs.mas.GraphUtils;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
+import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import com.github.rinde.rinsim.geom.Point;
 
 import java.util.*;
@@ -16,6 +17,11 @@ public class ParcelFactory {
     public final static double MAGNITUDE = 1.0D;
 
     private Random random = new Random();
+    private FieldStrategy fieldStrategy;
+
+    public ParcelFactory(FieldStrategy fieldStrategy) {
+        this.fieldStrategy = fieldStrategy;
+    }
 
     /**
      * Creates a parcel based on the current state of the given {@link GradientModel}, with as purpose that it be added
@@ -63,7 +69,7 @@ public class ParcelFactory {
         Point target = targets.get(random.nextInt(sources.size()));
 
         // Create and return emitter
-        return new TimeAwareParcel(source, target, MAGNITUDE, System.currentTimeMillis());
+        return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, System.currentTimeMillis());
     }
 
     public TimeAwareParcel makeParcel(GradientModel model) {

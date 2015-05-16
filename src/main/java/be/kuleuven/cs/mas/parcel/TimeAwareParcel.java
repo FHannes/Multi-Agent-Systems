@@ -2,6 +2,7 @@ package be.kuleuven.cs.mas.parcel;
 
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
+import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
@@ -12,10 +13,7 @@ import com.google.common.base.Optional;
 
 public class TimeAwareParcel extends Parcel implements FieldEmitter {
 
-	// TODO: Use treshold or make field strength a function of elapsed time?
-	public static final long TIME_TRESHOLD = 5000;
-	public static final double FIELD_BASIC = -1D;
-	public static final double FIELD_PRIORITY = -5D;
+	private FieldStrategy fieldStrategy;
 
 	private long waitingSince;
 	private Optional<RoadModel> roadModel;
@@ -24,10 +22,11 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	private Optional<Point> position;
 	private GradientModel gradientModel;
 	
-	TimeAwareParcel(Point startPosition, Point pDestination,
+	TimeAwareParcel(FieldStrategy fieldStrategy, Point startPosition, Point pDestination,
 			double pMagnitude, long currentTime) {
 		super(pDestination, 0, TimeWindow.ALWAYS, 0, TimeWindow.ALWAYS,
 				pMagnitude);
+		this.fieldStrategy = fieldStrategy;
 		setPosition(startPosition);
 		this.waitingSince = currentTime;
 	}
@@ -90,8 +89,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 
 	@Override
 	public double getStrength() {
-		// TODO: Regulate field strength (as function of <code>waitingSince</code>?)
-		return getElapsedTime() >= TIME_TRESHOLD ? FIELD_PRIORITY : FIELD_BASIC;
+		return -fieldStrategy.calculateFieldStrength(getElapsedTime());
 	}
 
 	@Override
