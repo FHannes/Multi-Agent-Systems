@@ -1,7 +1,7 @@
 package be.kuleuven.cs.mas.strategy;
 
 /**
- * A strategy (algorithm provider) for calculating field strnegths in the gradient field.
+ * A strategy (algorithm provider) for calculating field strengths in the gradient field.
  */
 public abstract class FieldStrategy {
 
