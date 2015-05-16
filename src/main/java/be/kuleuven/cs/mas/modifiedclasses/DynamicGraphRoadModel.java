@@ -15,18 +15,6 @@
  */
 package be.kuleuven.cs.mas.modifiedclasses;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
-
-import java.util.Queue;
-
-import javax.measure.quantity.Length;
-import javax.measure.quantity.Velocity;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
-
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.road.GraphRoadModel;
 import com.github.rinde.rinsim.core.model.road.MoveProgress;
@@ -34,15 +22,22 @@ import com.github.rinde.rinsim.core.model.road.MovingRoadUser;
 import com.github.rinde.rinsim.core.model.road.RoadUser;
 import com.github.rinde.rinsim.event.Event;
 import com.github.rinde.rinsim.event.Listener;
-import com.github.rinde.rinsim.geom.Connection;
-import com.github.rinde.rinsim.geom.ConnectionData;
-import com.github.rinde.rinsim.geom.Graph;
-import com.github.rinde.rinsim.geom.ListenableGraph;
+import com.github.rinde.rinsim.geom.*;
 import com.github.rinde.rinsim.geom.ListenableGraph.EventTypes;
 import com.github.rinde.rinsim.geom.ListenableGraph.GraphEvent;
-import com.github.rinde.rinsim.geom.Point;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+
+import javax.measure.quantity.Length;
+import javax.measure.quantity.Velocity;
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+import javax.measure.unit.Unit;
+import java.util.Queue;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 
 /**
  * {@link GraphRoadModel} that allows adding and removing connections and nodes

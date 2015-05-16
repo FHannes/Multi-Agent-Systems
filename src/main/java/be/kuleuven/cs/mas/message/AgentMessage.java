@@ -1,10 +1,9 @@
 package be.kuleuven.cs.mas.message;
 
+import com.github.rinde.rinsim.core.model.comm.MessageContents;
+
 import java.util.LinkedList;
 import java.util.List;
-
-import com.github.rinde.rinsim.core.model.comm.MessageContents;
-import com.google.common.base.Optional;
 
 public class AgentMessage implements MessageContents {
 

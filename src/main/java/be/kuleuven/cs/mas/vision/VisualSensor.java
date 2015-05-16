@@ -1,16 +1,15 @@
 package be.kuleuven.cs.mas.vision;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
-
 import be.kuleuven.cs.mas.modifiedclasses.CollisionGraphRoadModel;
-
 import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
+
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
 
 /**
  * Class representing an agent's visual capabilities. Can determine which points within the agent's visual range

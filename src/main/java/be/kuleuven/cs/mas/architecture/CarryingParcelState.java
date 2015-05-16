@@ -1,12 +1,11 @@
 package be.kuleuven.cs.mas.architecture;
 
-import java.util.regex.Matcher;
-
 import be.kuleuven.cs.mas.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
-
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.google.common.base.Optional;
+
+import java.util.regex.Matcher;
 
 public abstract class CarryingParcelState extends AgentState {
 

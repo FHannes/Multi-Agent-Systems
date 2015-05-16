@@ -15,19 +15,6 @@
  */
 package be.kuleuven.cs.mas.modifiedclasses;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Verify.verify;
-
-import java.util.Collection;
-import java.util.Queue;
-
-import javax.measure.quantity.Duration;
-import javax.measure.quantity.Length;
-import javax.measure.quantity.Velocity;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
-
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.road.MoveProgress;
 import com.github.rinde.rinsim.core.model.road.MovingRoadUser;
@@ -43,6 +30,18 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.primitives.Doubles;
+
+import javax.measure.quantity.Duration;
+import javax.measure.quantity.Length;
+import javax.measure.quantity.Velocity;
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+import javax.measure.unit.Unit;
+import java.util.Collection;
+import java.util.Queue;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verify;
 
 /**
  * Graph road model that avoids collisions between {@link RoadUser}s. When a

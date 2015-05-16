@@ -6,39 +6,25 @@ import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.AgentMessageBuilder;
+import be.kuleuven.cs.mas.modifiedclasses.CollisionGraphRoadModel;
+import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.vision.VisualSensor;
 import be.kuleuven.cs.mas.vision.VisualSensorOwner;
-
-import org.apache.commons.math3.random.RandomGenerator;
-
-import com.github.rinde.rinsim.core.TickListener;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.comm.CommDevice;
 import com.github.rinde.rinsim.core.model.comm.CommDeviceBuilder;
 import com.github.rinde.rinsim.core.model.comm.CommUser;
 import com.github.rinde.rinsim.core.model.comm.Message;
-import com.github.rinde.rinsim.core.model.comm.MessageContents;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel;
-import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.core.model.pdp.Vehicle;
-
-import be.kuleuven.cs.mas.modifiedclasses.CollisionGraphRoadModel;
-import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
-
 import com.github.rinde.rinsim.core.model.road.MovingRoadUser;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import javax.annotation.Nullable;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, CommUser, VisualSensorOwner {
 

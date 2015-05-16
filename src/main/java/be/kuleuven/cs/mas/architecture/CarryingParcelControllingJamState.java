@@ -1,16 +1,15 @@
 package be.kuleuven.cs.mas.architecture;
 
-import java.util.List;
-import java.util.Set;
-
+import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.message.AgentMessage;
+import be.kuleuven.cs.mas.message.Field;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel.ParcelState;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
-import be.kuleuven.cs.mas.AGVAgent;
-import be.kuleuven.cs.mas.message.AgentMessage;
-import be.kuleuven.cs.mas.message.Field;
+import java.util.List;
+import java.util.Set;
 
 public class CarryingParcelControllingJamState extends CarryingParcelState {
 

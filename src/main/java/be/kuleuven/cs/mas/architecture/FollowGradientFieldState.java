@@ -1,17 +1,16 @@
 package be.kuleuven.cs.mas.architecture;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import be.kuleuven.cs.mas.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.Field;
-
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class FollowGradientFieldState extends AgentState {
 

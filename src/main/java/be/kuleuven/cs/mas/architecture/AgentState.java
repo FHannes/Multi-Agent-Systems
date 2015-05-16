@@ -1,16 +1,15 @@
 package be.kuleuven.cs.mas.architecture;
 
+import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.message.AgentMessage;
+import com.github.rinde.rinsim.core.TimeLapse;
+import com.google.common.base.Optional;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.github.rinde.rinsim.core.TimeLapse;
-import com.google.common.base.Optional;
-
-import be.kuleuven.cs.mas.message.AgentMessage;
-import be.kuleuven.cs.mas.AGVAgent;
 
 /**
  * Interface representing the state of an agent. The state determines the behaviour of the agent when told to act
