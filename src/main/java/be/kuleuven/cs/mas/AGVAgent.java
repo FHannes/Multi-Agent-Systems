@@ -118,7 +118,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 
     @Override
     public double getStrength() {
-        return 0;
+        return state.getFieldStrength();
     }
 
     @Override

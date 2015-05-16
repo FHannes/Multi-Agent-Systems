@@ -25,6 +25,12 @@ public abstract class CarryingParcelState extends AgentState {
 	@Override
 	protected abstract void doStateTransition(Optional<AgentState> nextState);
 
+	@Override
+	public double getFieldStrength() {
+		// TODO: Assign field strength when carrying a parcel
+		return 0;
+	}
+
 	protected boolean trafficPriorityFunction(String requesterName, long parcelWaitTime)
 			throws IllegalArgumentException, IllegalStateException {
 		int compare = Long.compare(this.getAgent().getParcel().get().getWaitingSince(), parcelWaitTime);

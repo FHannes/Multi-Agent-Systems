@@ -12,6 +12,11 @@ import com.google.common.base.Optional;
 
 public class TimeAwareParcel extends Parcel implements FieldEmitter {
 
+	// TODO: Use treshold or make field strength a function of elapsed time?
+	public static final long TIME_TRESHOLD = 5000;
+	public static final double FIELD_BASIC = -1D;
+	public static final double FIELD_PRIORITY = -5D;
+
 	private long waitingSince;
 	private Optional<RoadModel> roadModel;
 	private Optional<PDPModel> pdpModel;
@@ -64,6 +69,15 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 		return this.waitingSince;
 	}
 
+	/**
+	 * Calculates and returns the time elapsed since the parcel was created.
+	 *
+	 * @return The elapsed time in milliseconds.
+	 */
+	public long getElapsedTime() {
+		return System.currentTimeMillis() - getWaitingSince();
+	}
+
 	protected void setPosition(Point position) {
 		super.setStartPosition(position);
 		this.position = Optional.of(position);
@@ -77,7 +91,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	@Override
 	public double getStrength() {
 		// TODO: Regulate field strength (as function of <code>waitingSince</code>?)
-		return 0;
+		return getElapsedTime() >= TIME_TRESHOLD ? FIELD_PRIORITY : FIELD_BASIC;
 	}
 
 	@Override

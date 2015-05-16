@@ -96,4 +96,11 @@ public abstract class AgentState {
 	protected boolean hasDeadlock(List<String> waitForList) {
 		return waitForList.contains(this.getAgent().getName());
 	}
+
+	/**
+	 * Returns the strength of the agent's influence on the gradient field. This value has to be positive as the agent
+	 * emits a repulsion field.
+	 */
+	public abstract double getFieldStrength();
+
 }
