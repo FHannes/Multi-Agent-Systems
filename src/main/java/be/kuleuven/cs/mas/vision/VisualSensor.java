@@ -6,10 +6,7 @@ import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Class representing an agent's visual capabilities. Can determine which points within the agent's visual range
@@ -132,15 +129,7 @@ public class VisualSensor {
 
 		@Override
 		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + getOuterType().hashCode();
-			result = prime * result
-					+ ((direction == null) ? 0 : direction.hashCode());
-			result = prime * result + ((from == null) ? 0 : from.hashCode());
-			result = prime * result + ((point == null) ? 0 : point.hashCode());
-			result = prime * result + range;
-			return result;
+			return Objects.hash(getOuterType(), direction, from, point, range);
 		}
 
 		@Override
