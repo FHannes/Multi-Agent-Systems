@@ -1,10 +1,10 @@
 package be.kuleuven.cs.mas.parcel;
 
-import be.kuleuven.cs.mas.GraphUtils;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import com.github.rinde.rinsim.geom.Point;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,12 +16,13 @@ public class ParcelFactory {
 
     public final static double MAGNITUDE = 1.0D;
 
-    private Random random = new Random();
+    private final RandomGenerator rng;
     private FieldStrategy fieldStrategy;
     private List<Point> storageSites;
     private List<Point> ioSites;
 
-    public ParcelFactory(FieldStrategy fieldStrategy, List<Point> storageSites, List<Point> ioSites) {
+    public ParcelFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> storageSites, List<Point> ioSites) {
+        this.rng = rng;
         this.fieldStrategy = fieldStrategy;
         this.storageSites = new ArrayList<>(storageSites);
         this.ioSites = new ArrayList<>(ioSites);
@@ -69,15 +70,15 @@ public class ParcelFactory {
         }
 
         // Select random source and destination point
-        Point source = sources.get(random.nextInt(sources.size()));
-        Point target = targets.get(random.nextInt(sources.size()));
+        Point source = sources.get(rng.nextInt(sources.size()));
+        Point target = targets.get(rng.nextInt(sources.size()));
 
         // Create and return emitter
         return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, System.currentTimeMillis());
     }
 
     public TimeAwareParcel makeParcel(GradientModel model) {
-        boolean outgoing = random.nextBoolean();
+        boolean outgoing = rng.nextBoolean();
         TimeAwareParcel parcel = makeParcel(model, outgoing);
         if (parcel == null) {
             parcel = makeParcel(model, !outgoing);
