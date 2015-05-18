@@ -36,9 +36,9 @@ public abstract class CarryingParcelState extends AgentState {
 		int compare = Long.compare(this.getAgent().getParcel().get().getWaitingSince(), parcelWaitTime);
 
 		if (compare < 0) {
-			return false;
-		} else if (compare > 0) {
 			return true;
+		} else if (compare > 0) {
+			return false;
 		} else {
 			Matcher reqMatcher = AgentState.NUM_PATTERN.matcher(requesterName);
 			Matcher ownMatcher = NUM_PATTERN.matcher(this.getAgent().getName());

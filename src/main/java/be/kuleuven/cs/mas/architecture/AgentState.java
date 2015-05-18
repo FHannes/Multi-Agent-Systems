@@ -60,9 +60,9 @@ public abstract class AgentState {
 		int compare = Long.compare(oneWaitTime, otherWaitTime);
 
 		if (compare < 0) {
-			return false;
-		} else if (compare > 0) {
 			return true;
+		} else if (compare > 0) {
+			return false;
 		} else {
 			Matcher oneReqMatcher = AgentState.NUM_PATTERN.matcher(oneReq);
 			Matcher otherMatcher = NUM_PATTERN.matcher(otherReq);
