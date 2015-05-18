@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.architecture;
 
-import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.Field;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
@@ -95,44 +95,32 @@ public class FollowGradientFieldState extends AgentState {
 
 	private void followGradientField(Set<Point> occupied, Point... forbidden) {
 		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
-		while (!targets.isEmpty()) {
-			Point target = targets.peek();
-			if (!forbiddenPoints.containsValue(target) && !occupied.contains(target)) {
-				break;
-			}
-			targets.poll();
-		}
-		Point target = targets.poll();
-		if (target == null) {
+		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
+				!occupied.contains(t)).findFirst();
+		if (!target.isPresent()) {
 			if (this.getRequester().isPresent() && ! this.getNextRequestedPoint().isPresent()
 					&& !this.hasMoved()) {
 				Set<Point> excludeSet = new HashSet<Point>(this.getForbiddenPoints().values());
 				excludeSet.addAll(Arrays.asList(forbidden));
 				this.setNextRequestedPoint((this.getAgent().getRandomNeighbourPoint(excludeSet)));
 				this.sendMoveAside();
-			} else {
-				this.setNextSelectedPoint(Optional.of(target));
 			}
+		} else {
+			this.setNextSelectedPoint(Optional.of(target.get()));
 		}
 	}
 	
 	private void followGradientFieldTryRequested(Set<Point> occupied) {
 		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
-		while (!targets.isEmpty()) {
-			Point target = targets.peek();
-			if (!forbiddenPoints.containsValue(target) && !occupied.contains(target)) {
-				break;
-			}
-			targets.poll();
-		}
-		Point target = targets.poll();
-		if (target == null) {
+		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
+				!occupied.contains(t)).findFirst();
+		if (!target.isPresent()) {
 			if (this.getRequester().isPresent() && this.getNextRequestedPoint().isPresent()
 					&& !this.hasMoved()) {
 				this.sendMoveAside();
-			} else {
-				this.setNextSelectedPoint(Optional.of(target));
 			}
+		} else {
+			this.setNextSelectedPoint(Optional.of(target.get()));
 		}
 	}
 

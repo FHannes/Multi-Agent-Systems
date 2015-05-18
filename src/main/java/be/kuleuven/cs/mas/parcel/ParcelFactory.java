@@ -29,18 +29,14 @@ public class ParcelFactory {
     }
 
     /**
-     * Creates a parcel based on the current state of the given {@link GradientModel}, with as purpose that it be added
-     * to that model. It takes into account other parcels that may have already been added to the field.
+     * Creates a new {@link TimeAwareParcel} to use in a {@link com.github.rinde.rinsim.core.model.pdp.PDPModel}.
      *
-     * @param model
-     *        The given {@link GradientModel}.
      * @param outgoing
      *        The parcel generated has to be outgoing. This means that it is to be picked up from one of the shelves in
      *        the warehouse and transported to a drop-off site where the warehouse's I/O occurs.
-     * @return A {@link TimeAwareParcel} which is added to the given {@link GradientModel}. The method can return null
-     *         if all available source sites are already occupied by waiting parcels.
+     * @return A new {@link TimeAwareParcel} instance.
      */
-    public TimeAwareParcel makeParcel(GradientModel model, boolean outgoing) {
+    public TimeAwareParcel makeParcel(boolean outgoing) {
         // Get set of shelf sites and drop-off sites
         List<Point> sources;
         List<Point> targets;
@@ -51,18 +47,6 @@ public class ParcelFactory {
             sources = ioSites;
             targets = storageSites;
         }
-
-        // Filter out all source points where a parcel can be waiting that does not have a waiting parcel already
-        // Process with HashSet for performance
-        Set<Point> sourceSet = new HashSet<>(sources);
-        List<FieldEmitter> waitingParcels = model.getEmitters().stream().filter(e -> e instanceof TimeAwareParcel &&
-                e.getPosition().isPresent()).collect(Collectors.toList());
-        waitingParcels.stream().forEach(f -> {
-            if (sourceSet.contains(f.getPosition().get())) {
-                sourceSet.remove(f.getPosition().get());
-            }
-        });
-        sources = new ArrayList<>(sourceSet);
 
         // Return null if all source sites are occupied by waiting parcels
         if (sources.isEmpty()) {
@@ -77,11 +61,11 @@ public class ParcelFactory {
         return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, System.currentTimeMillis());
     }
 
-    public TimeAwareParcel makeParcel(GradientModel model) {
+    public TimeAwareParcel makeParcel() {
         boolean outgoing = rng.nextBoolean();
-        TimeAwareParcel parcel = makeParcel(model, outgoing);
+        TimeAwareParcel parcel = makeParcel(outgoing);
         if (parcel == null) {
-            parcel = makeParcel(model, !outgoing);
+            parcel = makeParcel(!outgoing);
         }
         return parcel;
     }
