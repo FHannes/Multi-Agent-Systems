@@ -70,7 +70,8 @@ public class FollowGradientFieldState extends AgentState {
 		if (this.getNextSelectedPoint().isPresent()
 				&& this.getNextRequestedPoint().isPresent()
 				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint())
-				&& ! occupied.contains(this.getNextSelectedPoint().get())) {
+				&& ! occupied.contains(this.getNextSelectedPoint().get())
+				&& ! this.getForbiddenPoints().values().contains(this.getNextSelectedPoint())) {
 			this.sendRelease();
 			this.setNextRequestedPoint(Optional.absent());
 			this.setHasMoved(true);
