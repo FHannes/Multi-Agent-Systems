@@ -2,7 +2,10 @@ package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
+import be.kuleuven.cs.mas.message.Field;
+
 import com.github.rinde.rinsim.core.TimeLapse;
+import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
 import java.util.Arrays;
@@ -38,7 +41,146 @@ public abstract class AgentState {
 	/**
 	 * Processes the given message in a manner appropriate to the state
 	 */
-	public abstract void processMessage(AgentMessage msg);
+	public void processMessage(AgentMessage msg) {
+		List<Field> contents = msg.getContents();
+		switch(contents.get(0).getName()) {
+		case "move-aside": Optional<MoveAsideMessage> moveMessage = parseMoveAsideMessage(contents);
+		if (moveMessage.isPresent()) {
+			this.processMoveAsideMessage(moveMessage.get());
+		}
+		break;
+		case "release": Optional<ReleaseMessage> releaseMessage = parseReleaseMessage(contents);
+		if (releaseMessage.isPresent()) {
+			this.processReleaseMessage(releaseMessage.get());
+		}
+		break;
+		case "home-free": Optional<HomeFreeMessage> homeMessage = parseHomeFreeMessage(contents);
+		if (homeMessage.isPresent()) {
+			this.processHomeFreeMessage(homeMessage.get());
+			break;
+		}
+		break;
+		case "reject": Optional<RejectMessage> rejectMessage = parseRejectMessage(contents);
+		if (rejectMessage.isPresent()) {
+			this.processRejectMessage(rejectMessage.get());
+			break;
+		}
+		break;
+		case "ack": Optional<AckMessage> ackMessage = parseAckMessage(contents);
+		if (ackMessage.isPresent()) {
+			this.processAckMessage(ackMessage.get());
+		}
+		break;
+		default: return;
+		}
+	}
+	
+	protected static Optional<MoveAsideMessage> parseMoveAsideMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("wait-for")) {
+			return Optional.absent();
+		}
+		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
+			return Optional.absent();
+		}
+		long parcelWaitingSince = Long.parseLong(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("want-pos")) {
+			return Optional.absent();
+		}
+		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("at-pos")) {
+			return Optional.absent();
+		}
+		Point atPos = Point.parsePoint(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("step")) {
+			return Optional.absent();
+		}
+		int step = Integer.parseInt(contents.get(i++).getValue());
+		return Optional.of(new MoveAsideMessage(requester, propagator, waitForList, timeStamp, parcelWaitingSince, wantPos, atPos, step));
+	}
+	
+	protected abstract void processMoveAsideMessage(MoveAsideMessage msg);
+	
+	protected static Optional<ReleaseMessage> parseReleaseMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		return Optional.of(new ReleaseMessage(requester, propagator, timeStamp));
+	}
+	
+	protected abstract void processReleaseMessage(ReleaseMessage msg);
+	
+	protected static Optional<HomeFreeMessage> parseHomeFreeMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		return Optional.of(new HomeFreeMessage(requester));
+	}
+	
+	protected abstract void processHomeFreeMessage(HomeFreeMessage msg);
+	
+	protected static Optional<RejectMessage> parseRejectMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		Long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		return Optional.of(new RejectMessage(requester, propagator, timeStamp));
+	}
+	
+	protected abstract void processRejectMessage(RejectMessage msg);
+	
+	protected static Optional<AckMessage> parseAckMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		return Optional.of(new AckMessage(requester, propagator, timeStamp));
+	}
+	
+	protected abstract void processAckMessage(AckMessage msg);
 	
 	protected AGVAgent getAgent() {
 		return this.agent;

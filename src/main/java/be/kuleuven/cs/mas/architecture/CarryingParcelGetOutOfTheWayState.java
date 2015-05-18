@@ -1,8 +1,6 @@
 package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
-import be.kuleuven.cs.mas.message.AgentMessage;
-import be.kuleuven.cs.mas.message.Field;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
@@ -19,15 +17,17 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	private boolean waitingOnOther = false;
 	private boolean hasMoved = false;
 	private long timeOutCount = 0;
+	private long timeStamp = 0;
 	private List<String> waitForList;
 
-	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, List<String> waitForList, long parcelWaitTime, int step, Point propagatorPos) {
+	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorPos) {
 		super(agent);
 		this.requester = requester;
 		this.propagator = propagator;
 		this.parcelWaitTime = parcelWaitTime;
 		this.step = step;
 		this.waitForList = waitForList;
+		this.timeStamp = timeStamp;
 		
 		this.doMoveAside(propagatorPos);
 	}
@@ -75,23 +75,6 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	}
 
 	@Override
-	public void processMessage(AgentMessage msg) {
-		switch(msg.getContents().get(0).getName()) {
-		case "move-aside": this.processMoveAside(msg);
-		break;
-		case "reject": this.processRejectMessage(msg);
-		break;
-		case "ack": this.processAckMessage(msg);
-		break;
-		case "release": this.processReleaseMessage(msg);
-		break;
-		case "home-free": this.processHomeFreeMessage(msg);
-		break;
-		default: return;
-		}
-	}
-
-	@Override
 	public void uponSet() {
 		// TODO Auto-generated method stub
 
@@ -107,6 +90,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		.addField("requester", this.getRequester())
 		.addField("propagator", this.getAgent().getName())
 		.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
+		.addField("timestamp", Long.toString(this.getTimeStamp()))
 		.addField("parcel-waiting-since", Long.toString(this.getParcelWaitTime()))
 		.addField("want-pos", this.getNextWantedPoint().toString())
 		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
@@ -115,17 +99,19 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.setTimeOutCount(0);
 	}
 	
-	private void sendAck(String requester, String propagator) {
+	private void sendAck(String requester, String propagator, long timeStamp) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("ack")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
 				.build());
 	}
 	
-	private void sendReject(String requester, String propagator) {
+	private void sendReject(String requester, String propagator, long timeStamp) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
 				.build());
 	}
 	
@@ -133,145 +119,100 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
 				.addField("requester", this.getRequester())
 				.addField("propagator", this.getAgent().getName())
+				.addField("timestamp", Long.toString(this.getTimeStamp()))
 				.build());
 	}
 	
-	private void processMoveAside(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
+	protected void processMoveAsideMessage(MoveAsideMessage msg) {
 		boolean handleDeadlock = false;
 		
-		if (! contents.get(i).getName().equals("requester")) {
-			return;
-		}
-		String requester = contents.get(i++).getValue();
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! contents.get(i).getName().equals("wait-for")) {
-			return;
-		}
-		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
-		if (this.hasDeadlock(waitForList)) {
-			// there is a deadlock, but wait until position of propagator is known
+		if (this.hasDeadlock(msg.getWaitForList())) {
 			handleDeadlock = true;
 		}
-		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
+		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(), msg.getWantPos()))) {
+			// propagator does not want our position
 			return;
 		}
-		long parcelWaitingSince = Long.parseLong(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("want-pos")) {
-			return;
-		}
-		Point requestedPoint = Point.parsePoint(contents.get(i++).getValue());
-		if (! (this.getAgent().getPosition().equals(requestedPoint)
-				|| this.getAgent().getNextPointOnPath().equals(requestedPoint))) {
-			return;
-		}
-		if (! contents.get(i).getName().equals("at-pos")) {
-			return;
-		}
-		Point propagatorPos = Point.parsePoint(contents.get(i++).getValue());
 		if (handleDeadlock) { // if there is a deadlock, it can now be handled properly
 			this.sendRelease();
-			this.doMoveAside(propagatorPos, this.getNextWantedPoint()); // try again, this time trying to move to a different point
+			this.doMoveAside(msg.getAtPos(), this.getNextWantedPoint()); // try again, this time trying to move to a different point
 			// this will always work because only "get out of the way" agents at a junction will ever detect deadlock
 			// since the controller will detect it first in the other case
 			return;
 		}
-		if (! contents.get(i).getName().equals("step")) {
-			// invalid message, so ignore
-			return;
-		}
-		if (requester.equals(this.getRequester())) {
+		if (msg.getRequester().equals(this.getRequester())) {
 			// check if the step has increased, in which case the agent must once again move out of the way
-			int step = Integer.parseInt(contents.get(i).getValue());
-			if ((step > this.getStep()) ||
-					(this.hasMoved() && step == this.getStep())) { // must also move aside if the step remained the same
+			if ((msg.getStep() > this.getStep()) ||
+					(this.hasMoved() && msg.getStep() == this.getStep())) { // must also move aside if the step remained the same
 				// but an earlier move aside was not enough to solve the problem
-				this.doMoveAside(propagatorPos);
-				this.setPropagator(propagator);
-				this.setWaitForList(waitForList);
-				this.setStep(step);
+				if (msg.getStep() == this.getStep() && msg.getTimeStamp() < this.getTimeStamp()) {
+					// do not listen to messages with expired timestamps
+					this.sendReject(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
+					return;
+				}
+				this.doMoveAside(msg.getAtPos());
+				this.setPropagator(msg.getPropagator());
+				this.setWaitForList(msg.getWaitForList());
+				this.setStep(msg.getStep());
 				return;
 			}
 		}
-		if (this.trafficPriorityFunction(this.getRequester(), parcelWaitingSince)) {
-			this.sendReject(requester, propagator);
+		if (this.trafficPriorityFunction(this.getRequester(), msg.getParcelWaitingSince())) {
+			this.sendReject(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
 		} else {
-			this.sendAck(requester, propagator);
-			int step = Integer.parseInt(contents.get(i).getValue());
-			this.setRequester(requester);
-			this.setPropagator(propagator);
-			this.setParcelWaitTime(parcelWaitingSince);
-			this.setStep(step);
-			this.setWaitForList(waitForList);
+			// must now get out of the way for the new requester
+			this.sendAck(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
+			this.setRequester(msg.getRequester());
+			this.setPropagator(msg.getPropagator());
+			this.setParcelWaitTime(msg.getParcelWaitingSince());
+			this.setStep(msg.getStep());
+			this.setWaitForList(msg.getWaitForList());
 			this.setTimeOutCount(0);
+			this.setTimeStamp(msg.getTimeStamp());
 			this.setWaitingOnOther(false);
 			this.sendRelease();
-			this.doMoveAside(propagatorPos);
+			this.doMoveAside(msg.getAtPos());
 		}
 	}
 	
 
-	private void processRejectMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
+	protected void processRejectMessage(RejectMessage msg) {
+		if (! msg.getRequester().equals(this.getRequester())) {
 			return;
 		}
-		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! propagator.equals(this.getAgent().getName())) {
+		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
 		// reset time-out
 		this.setTimeOutCount(0);
 	}
 
-	private void processAckMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
+	protected void processAckMessage(AckMessage msg) {
+		if (! msg.getRequester().equals(this.getRequester())) {
 			return;
 		}
-		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! propagator.equals(this.getAgent().getName())) {
+		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
 		// reset time-out
 		this.setTimeOutCount(0);
 	}
 	
-	private void processReleaseMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
+	protected void processReleaseMessage(ReleaseMessage msg) {
+		if (! msg.getRequester().equals(this.getRequester())) {
 			return;
 		}
-		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! msg.getPropagator().equals(this.getPropagator())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! propagator.equals(this.getPropagator())) {
+		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
 		// the propagator has released this agent from coordinating the traffic jam
@@ -279,14 +220,8 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), true)));
 	}
 	
-	private void processHomeFreeMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
-			return;
-		}
-		String requester = contents.get(i).getValue();
-		if (requester.equals(this.getRequester())) {
+	protected void processHomeFreeMessage(HomeFreeMessage msg) {
+		if (msg.getRequester().equals(this.getRequester())) {
 			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), true)));
 		}
 	}
@@ -369,6 +304,14 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 
 	private boolean timeOutOccurred() {
 		return this.getTimeOutCount() >= AgentState.RESEND_TIMEOUT;
+	}
+	
+	private long getTimeStamp() {
+		return this.timeStamp;
+	}
+	
+	private void setTimeStamp(long timeStamp) {
+		this.timeStamp = timeStamp;
 	}
 	
 	private List<String> getWaitForList() {

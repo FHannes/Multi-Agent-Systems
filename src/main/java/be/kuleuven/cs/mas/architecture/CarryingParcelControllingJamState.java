@@ -1,25 +1,24 @@
 package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
-import be.kuleuven.cs.mas.message.AgentMessage;
-import be.kuleuven.cs.mas.message.Field;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel.ParcelState;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
-import java.util.List;
 import java.util.Set;
 
 public class CarryingParcelControllingJamState extends CarryingParcelState {
 
 	private int step = 0;
 	private long timeOutCount = 0;
+	private long timeStamp = 0;
 	private Point nextWantedPoint;
 
-	public CarryingParcelControllingJamState(AGVAgent agent) {
+	public CarryingParcelControllingJamState(AGVAgent agent, long timeStamp) {
 		super(agent);
 		this.nextWantedPoint = agent.getNextPointOnPath().get();
+		this.timeStamp = timeStamp;
 	}
 
 	@Override
@@ -38,7 +37,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.getAgent().followPath(timeLapse);
 			if (this.getAgent().getPosition().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
-				this.afterMoveForward();
+				this.afterMoveForward(timeLapse);
 				return;
 			}
 		}
@@ -49,21 +48,9 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		}
 	}
 
-	@Override
-	public void processMessage(AgentMessage msg) {
-		switch (msg.getContents().get(0).getName()) {
-		case "move-aside": this.processMoveAsideMessage(msg);
-		break;
-		case "reject": this.processRejectMessage(msg);
-		break;
-		case "ack": this.processAckMessage(msg);
-		break;
-		default: return; // ignore all other messages
-		}
-	}
-
-	private void afterMoveForward() {
+	private void afterMoveForward(TimeLapse timeLapse) {
 		this.setStep(this.getStep() + 1);
+		this.setTimeStamp(timeLapse.getTime());
 
 		this.setNextWantedPoint(this.getAgent().getNextPointOnPath().get());
 		if (! this.getAgent().occupiedPointsOnPathWithinRange()) {
@@ -89,6 +76,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		.addField("requester", this.getAgent().getName())
 		.addField("propagator", this.getAgent().getName())
 		.addField("wait-for", this.getAgent().getName())
+		.addField("timestamp", Long.toString(this.getTimeStamp()))
 		.addField("parcel-waiting-since", Long.toString(this.getAgent().getParcel().get().getWaitingSince()))
 		.addField("want-pos", this.getNextWantedPoint().toString())
 		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
@@ -135,6 +123,14 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		return this.getTimeOutCount() >= AgentState.RESEND_TIMEOUT;
 	}
 
+	private long getTimeStamp() {
+		return this.timeStamp;
+	}
+	
+	private void setTimeStamp(long timeStamp) {
+		this.timeStamp = timeStamp;
+	}
+	
 	private Point getNextWantedPoint() {
 		return this.nextWantedPoint;
 	}
@@ -143,41 +139,18 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		this.nextWantedPoint = point;
 	}
 
-	private void processMoveAsideMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
+	protected void processMoveAsideMessage(MoveAsideMessage msg) {
 		boolean sawOwnName = false;
-		
-		if (! contents.get(i).getName().equals("requester")) {
-			return;
-		}
-		String requester = contents.get(i++).getValue();
-		if (requester.equals(this.getAgent().getName())) {
+		if (msg.getRequester().equals(this.getAgent().getName())) {
 			// monitor for possible deadlock
 			sawOwnName = true;
+		}
+		if (msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (propagator.equals(this.getAgent().getName())) {
-			return;
-		}
-		if (! contents.get(i).getName().equals("wait-for")) {
-			return;
-		}
-		List<String> waitForList = toWaitForList(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("parcel-waiting-since")) {
-			return;
-		}
-		long parcelWaitingSince = Long.parseLong(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("want-pos")) {
-			return;
-		}
-		Point requestedPoint = Point.parsePoint(contents.get(i++).getValue());
-		if (! (this.getAgent().getPosition().equals(requestedPoint)
-				|| this.getAgent().getNextPointOnPath().equals(requestedPoint))) {
+		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(), msg.getWantPos()))) {
+			// requester does not want our point
 			return;
 		}
 		if (sawOwnName) {
@@ -185,46 +158,32 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.sendHomeFree();
 			this.resendMoveAside();
 		}
-		if (! contents.get(i).getName().equals("at-pos")) {
-			return;
-		}
-		Point propagatorPos = Point.parsePoint(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("step")) {
-			// invalid message, so ignore
-			return;
-		}
-		if (this.trafficPriorityFunction(requester, parcelWaitingSince)) {
+		if (this.trafficPriorityFunction(msg.getRequester(), msg.getParcelWaitingSince())) {
 			this.getAgent().getMessageBuilder().addField("reject")
-			.addField("requester", requester)
-			.addField("propagator", propagator);
+			.addField("requester", msg.getRequester())
+			.addField("propagator", msg.getPropagator())
+			.addField("timestamp", Long.toString(msg.getTimeStamp()));
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
 		} else {
 			this.getAgent().getMessageBuilder().addField("ack")
-			.addField("requester", requester)
-			.addField("propagator", propagator);
+			.addField("requester", msg.getRequester())
+			.addField("propagator", msg.getPropagator())
+			.addField("timestamp", Long.toString(msg.getTimeStamp()));
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
-			int step = Integer.parseInt(contents.get(i).getValue());
 			// release all agents waiting on this agent
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), requester, propagator, waitForList, parcelWaitingSince, step, propagatorPos)));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
 		}
 	}
 
-	private void processRejectMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
+	protected void processRejectMessage(RejectMessage msg) {
+		if (! msg.getRequester().equals(this.getAgent().getName())) {
 			return;
 		}
-		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getAgent().getName())) {
+		if (! msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! propagator.equals(this.getAgent().getName())) {
+		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
 		// reset time-out
@@ -232,24 +191,29 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	}
 
 	// TODO are ack messages necessary?
-	private void processAckMessage(AgentMessage msg) {
-		int i = 1;
-		List<Field> contents = msg.getContents();
-		if (! contents.get(i).getName().equals("requester")) {
+	protected void processAckMessage(AckMessage msg) {
+		if (! msg.getRequester().equals(this.getAgent().getName())) {
 			return;
 		}
-		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getAgent().getName())) {
+		if (! msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! contents.get(i).getName().equals("propagator")) {
-			return;
-		}
-		String propagator = contents.get(i++).getValue();
-		if (! propagator.equals(this.getAgent().getName())) {
+		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
 		// reset time-out
 		this.setTimeOutCount(0);
+	}
+
+	@Override
+	protected void processReleaseMessage(ReleaseMessage msg) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void processHomeFreeMessage(HomeFreeMessage msg) {
+		// TODO Auto-generated method stub
+		
 	}
 }

@@ -299,6 +299,15 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to))
 				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from)) : false);
 	}
+	
+	public boolean isOnConnectionTo(RoadUser roadUser, Point to) {
+		for (Point from : graph.getIncomingConnections(to)) {
+			if (connMap.get(graph.getConnection(from, to)).contains(roadUser)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	private boolean connKeyHasMovingRoadUser(Connection<?> key) {
 		for (RoadUser user : connMap.get(key)) {
