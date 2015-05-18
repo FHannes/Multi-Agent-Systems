@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.architecture;
 
-import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.Field;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
