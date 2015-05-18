@@ -55,15 +55,9 @@ public class FollowGradientFieldState extends AgentState {
 
 		Set<Point> occupied = getAgent().getOccupiedPointsInVisualRange();
 		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
-		while (!targets.isEmpty()) {
-			Point target = targets.peek();
-			if (!forbiddenPoints.containsValue(target) && !occupied.contains(target)) {
-				break;
-			}
-			targets.poll();
-		}
-		Point target = targets.poll();
-		if (target == null) {
+		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
+				!occupied.contains(t)).findFirst();
+		if (target.isPresent()) {
 
 		} else {
 

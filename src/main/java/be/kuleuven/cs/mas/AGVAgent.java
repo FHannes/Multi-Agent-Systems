@@ -44,8 +44,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     private String name;
     private Point mostRecentPosition;
 
-    // TODO: move determination of unoccupied position to start out on to simulation initialisation
-    AGVAgent(RandomGenerator r, int visualRange, Point startPosition, String name) {
+    public AGVAgent(RandomGenerator r, int visualRange, Point startPosition, String name) {
         rng = r;
         roadModel = Optional.absent();
         pdpModel = Optional.absent();
