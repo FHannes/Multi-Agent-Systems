@@ -88,6 +88,7 @@ public class FollowGradientFieldState extends AgentState {
 						this.getAgent().getPosition().get().equals(this.getNextRequestedPoint().get())) {
 					this.setHasMoved(true);
 				}
+				this.setNextSelectedPoint(Optional.absent());
 			}
 		}
 	}
