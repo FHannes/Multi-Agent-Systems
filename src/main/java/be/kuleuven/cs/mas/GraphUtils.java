@@ -67,4 +67,14 @@ public class GraphUtils {
         return sites;
     }
 
+    public static List<Point> getSpawnSites() {
+        List<Point> sites = new ArrayList<>();
+        for (int c = 0; c < GRAPH_COLS; c++) {
+            for (int r = 0; r < GRAPH_ROWS; r++) {
+                sites.add(new Point(c * VEHICLE_LENGTH * 2, r * VEHICLE_LENGTH * 2));
+            }
+        }
+        return sites;
+    }
+
 }

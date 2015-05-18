@@ -1,6 +1,7 @@
 package be.kuleuven.cs.mas.agent;
 
 import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
@@ -14,12 +15,14 @@ public class AgentFactory {
 
     public final static int VISUAL_RANGE = 3;
 
-    private RandomGenerator rng;
-    private List<Point> spawnSites;
+    private final RandomGenerator rng;
+    private final FieldStrategy fieldStrategy;
+    private final List<Point> spawnSites;
     private int idCounter = 0;
 
-    public AgentFactory(RandomGenerator rng, List<Point> spawnSites) {
+    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> spawnSites) {
         this.rng = rng;
+        this.fieldStrategy = fieldStrategy;
         this.spawnSites = spawnSites;
     }
 
@@ -32,7 +35,7 @@ public class AgentFactory {
         if (freeSpawns.isEmpty()) {
             return null;
         } else {
-            return new AGVAgent(rng, VISUAL_RANGE, freeSpawns.get(rng.nextInt(freeSpawns.size())),
+            return new AGVAgent(rng, fieldStrategy, VISUAL_RANGE, freeSpawns.get(rng.nextInt(freeSpawns.size())),
                     String.format("agent%d", ++idCounter));
         }
     }

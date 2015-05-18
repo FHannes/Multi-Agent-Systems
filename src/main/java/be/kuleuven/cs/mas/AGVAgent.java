@@ -8,6 +8,7 @@ import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.AgentMessageBuilder;
 import be.kuleuven.cs.mas.modifiedclasses.CollisionGraphRoadModel;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
+import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.vision.VisualSensor;
 import be.kuleuven.cs.mas.vision.VisualSensorOwner;
 import com.github.rinde.rinsim.core.TimeLapse;
@@ -32,6 +33,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     private GradientModel gradientModel;
 
     private final RandomGenerator rng;
+	private final FieldStrategy fieldStrategy;
     private Optional<CollisionGraphRoadModel> roadModel;
     private Optional<PDPModel> pdpModel;
     private Optional<Point> nextPointDestination;
@@ -44,8 +46,9 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     private String name;
     private Point mostRecentPosition;
 
-    public AGVAgent(RandomGenerator r, int visualRange, Point startPosition, String name) {
+    public AGVAgent(RandomGenerator r, FieldStrategy fieldStrategy, int visualRange, Point startPosition, String name) {
         rng = r;
+		this.fieldStrategy = fieldStrategy;
         roadModel = Optional.absent();
         pdpModel = Optional.absent();
         nextPointDestination = Optional.absent();
@@ -271,4 +274,9 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 			return Optional.of(asList.get(this.rng.nextInt(asList.size())));
 		}
 	}
+
+	public FieldStrategy getFieldStrategy() {
+		return fieldStrategy;
+	}
+
 }
