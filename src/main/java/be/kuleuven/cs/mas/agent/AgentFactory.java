@@ -13,16 +13,16 @@ import java.util.stream.Collectors;
 
 public class AgentFactory {
 
-    public final static int VISUAL_RANGE = 3;
-
     private final RandomGenerator rng;
     private final FieldStrategy fieldStrategy;
+    private final int visualRange;
     private final List<Point> spawnSites;
     private int idCounter = 0;
 
-    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> spawnSites) {
+    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, int visualRange, List<Point> spawnSites) {
         this.rng = rng;
         this.fieldStrategy = fieldStrategy;
+        this.visualRange = visualRange;
         this.spawnSites = spawnSites;
     }
 
@@ -35,7 +35,7 @@ public class AgentFactory {
         if (freeSpawns.isEmpty()) {
             return null;
         } else {
-            return new AGVAgent(rng, fieldStrategy, VISUAL_RANGE, freeSpawns.get(rng.nextInt(freeSpawns.size())),
+            return new AGVAgent(rng, fieldStrategy, visualRange, freeSpawns.get(rng.nextInt(freeSpawns.size())),
                     String.format("agent%d", ++idCounter));
         }
     }
