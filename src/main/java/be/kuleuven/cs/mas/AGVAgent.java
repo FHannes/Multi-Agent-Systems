@@ -70,11 +70,6 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
         return 1;
     }
 
-    void nextDestination() {
-        nextPointDestination = Optional.of(gradientModel.getGradientTarget(this));
-        path = new LinkedList<>(roadModel.get().getShortestPathTo(this, nextPointDestination.get()));
-    }
-
     @Override
     public void tickImpl(TimeLapse timeLapse) {
     	// TODO move all agent behaviour to states
@@ -87,17 +82,6 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     	}
     	
     	this.getAgentState().act(timeLapse);
-    	
-    	// TODO expanding on the above, that means moving all this
-        if (!nextPointDestination.isPresent()) {
-            nextDestination();
-        }
-
-        roadModel.get().followPath(this, path, timeLapse);
-
-        if (roadModel.get().getPosition(this).equals(nextPointDestination.get())) {
-            nextDestination();
-        }
     }
 
     public void followPath(TimeLapse timeLapse) {
@@ -261,7 +245,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 		}
 	}
 	
-	public Optional<Point> getRandomNeighbourPoint(Set<Point> excludeSet) {
+	public Optional<Point> getRandomNeighbourPoint(Collection<Point> excludeSet) {
 		Collection<Point> neighbours = this.getRoadModel().getGraph().getOutgoingConnections(this.getPosition().get());
 		neighbours.removeAll(excludeSet);
 		
@@ -271,5 +255,9 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 			ArrayList<Point> asList = new ArrayList<>(neighbours);
 			return Optional.of(asList.get(this.rng.nextInt(asList.size())));
 		}
+	}
+	
+	public Collection<Point> getNeighbouringPoints() {
+		return this.getRoadModel().getGraph().getOutgoingConnections(this.getPosition().get());
 	}
 }

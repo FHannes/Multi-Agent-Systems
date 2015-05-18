@@ -4,6 +4,7 @@ import be.kuleuven.cs.mas.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.Field;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.geom.Point;
@@ -12,6 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -21,15 +24,17 @@ public class FollowGradientFieldState extends AgentState {
 
 	private Multimap<String, Point> forbiddenPoints = LinkedHashMultimap.create();
 	private Optional<String> requester;
+	private Optional<Point> nextRequestedPoint;
 	private Optional<Point> nextSelectedPoint;
 	private Optional<List<String>> waitForList;
+	private boolean hasMoved = false;
 	private long parcelWaitingSince = 0;
 	private int step = 0;
-	
+
 	public FollowGradientFieldState(AGVAgent agent) {
 		super(agent);
 		requester = Optional.absent();
-		nextSelectedPoint = Optional.absent();
+		nextRequestedPoint = Optional.absent();
 	}
 
 	@Override
@@ -54,6 +59,40 @@ public class FollowGradientFieldState extends AgentState {
 		}
 
 		Set<Point> occupied = getAgent().getOccupiedPointsInVisualRange();
+
+		if (! this.getAgent().getMostRecentPosition().equals(this.getAgent().getPosition().get())) {
+			// agent has started moving
+		}
+
+		if (! this.getNextSelectedPoint().isPresent()) {
+			this.followGradientField(occupied);
+		}
+		if (this.getNextSelectedPoint().isPresent()
+				&& this.getNextRequestedPoint().isPresent()
+				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint())
+				&& ! occupied.contains(this.getNextSelectedPoint().get())) {
+			this.sendRelease();
+			this.setNextRequestedPoint(Optional.absent());
+			this.setHasMoved(true);
+		}
+		if (this.getNextSelectedPoint().isPresent()
+				&& this.getNextRequestedPoint().isPresent()
+				&& this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint().get())
+				&& occupied.contains(this.getNextSelectedPoint().get())) {
+			this.followGradientFieldTryRequested(occupied);
+		}
+		if (this.getNextSelectedPoint().isPresent() && ! occupied.contains(this.getNextSelectedPoint())) {
+			this.getAgent().getRoadModel().moveTo(this.getAgent(), this.getNextSelectedPoint().get(), timeLapse);
+			if (this.getAgent().getPosition().get().equals(this.getNextSelectedPoint())) {
+				if (this.getNextRequestedPoint().isPresent() &&
+						this.getAgent().getPosition().get().equals(this.getNextRequestedPoint().get())) {
+					this.setHasMoved(true);
+				}
+			}
+		}
+	}
+
+	private void followGradientField(Set<Point> occupied, Point... forbidden) {
 		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
 		while (!targets.isEmpty()) {
 			Point target = targets.peek();
@@ -64,9 +103,35 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		Point target = targets.poll();
 		if (target == null) {
-
-		} else {
-
+			if (this.getRequester().isPresent() && ! this.getNextRequestedPoint().isPresent()
+					&& !this.hasMoved()) {
+				Set<Point> excludeSet = new HashSet<Point>(this.getForbiddenPoints().values());
+				excludeSet.addAll(Arrays.asList(forbidden));
+				this.setNextRequestedPoint((this.getAgent().getRandomNeighbourPoint(excludeSet)));
+				this.sendMoveAside();
+			} else {
+				this.setNextSelectedPoint(Optional.of(target));
+			}
+		}
+	}
+	
+	private void followGradientFieldTryRequested(Set<Point> occupied) {
+		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
+		while (!targets.isEmpty()) {
+			Point target = targets.peek();
+			if (!forbiddenPoints.containsValue(target) && !occupied.contains(target)) {
+				break;
+			}
+			targets.poll();
+		}
+		Point target = targets.poll();
+		if (target == null) {
+			if (this.getRequester().isPresent() && this.getNextRequestedPoint().isPresent()
+					&& !this.hasMoved()) {
+				this.sendMoveAside();
+			} else {
+				this.setNextSelectedPoint(Optional.of(target));
+			}
 		}
 	}
 
@@ -86,12 +151,12 @@ public class FollowGradientFieldState extends AgentState {
 		default: return;
 		}
 	}
-	
+
 	private void processMoveAsideMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
 		boolean handleDeadlock = false;
-		
+
 		if (! contents.get(i).getName().equals("requester")) {
 			return;
 		}
@@ -126,7 +191,7 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		Point requestedPoint = Point.parsePoint(contents.get(i++).getValue());
 		if (! (this.getAgent().getPosition().equals(requestedPoint)
-				|| (this.getNextSelectedPoint().isPresent() && this.getNextSelectedPoint().get().equals(requestedPoint)))) {
+				|| (this.getNextRequestedPoint().isPresent() && this.getNextRequestedPoint().get().equals(requestedPoint)))) {
 			return;
 		}
 		if (! contents.get(i).getName().equals("at-pos")) {
@@ -135,7 +200,7 @@ public class FollowGradientFieldState extends AgentState {
 		Point propagatorPos = Point.parsePoint(contents.get(i++).getValue());
 		if (handleDeadlock) {
 			this.sendRelease();
-			// TODO select new point different from the propagator's position and the previously selected point
+			this.followGradientField(this.getAgent().getOccupiedPointsInVisualRange(), this.getNextRequestedPoint().get());
 		}
 		if (! contents.get(i).getName().equals("step")) {
 			// invalid message, so ignore
@@ -147,6 +212,7 @@ public class FollowGradientFieldState extends AgentState {
 		} else if ((this.getRequester().isPresent() && this.getRequester().get().equals(requester) &&  step > this.getStep()) ||
 				! this.getRequester().isPresent() || ! this.getRequester().get().equals(requester)) {
 			this.getForbiddenPoints().clear();
+			this.setHasMoved(false);
 		}
 		if (! this.getRequester().isPresent() || ! this.getRequester().get().equals(requester)) {
 			if (this.getRequester().isPresent() && ! this.getRequester().get().equals(requester)) {
@@ -154,6 +220,7 @@ public class FollowGradientFieldState extends AgentState {
 			}
 			this.setRequester(Optional.of(requester));
 			this.setParcelWaitingSince(parcelWaitingSince);
+			this.setHasMoved(false);
 		}
 
 		this.setStep(step);
@@ -162,11 +229,11 @@ public class FollowGradientFieldState extends AgentState {
 		this.getForbiddenPoints().put(propagator, requestedPoint);
 		this.sendAck(requester, propagator);
 	}
-	
+
 	private void processAckMessage(AgentMessage msg) {
-		
+
 	}
-	
+
 	private void processRejectMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
@@ -174,7 +241,7 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		String requester = contents.get(i++).getValue();
-		if (! requester.equals(this.getRequester())) {
+		if (! this.getRequester().isPresent() || ! requester.equals(this.getRequester().get())) {
 			return;
 		}
 		if (! contents.get(i).getName().equals("propagator")) {
@@ -185,8 +252,11 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		// TODO select new point to navigate to, but requestedPoint may not be selected (however, do not add to forbiddenPoints)
+		if (this.getNextRequestedPoint().isPresent()) {
+			this.followGradientField(this.getAgent().getOccupiedPointsInVisualRange(), this.getNextRequestedPoint().get());
+		}
 	}
-	
+
 	private void processHomeFreeMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
@@ -203,7 +273,7 @@ public class FollowGradientFieldState extends AgentState {
 		this.setParcelWaitingSince(0);
 		this.setStep(0);
 	}
-	
+
 	private void processReleaseMessage(AgentMessage msg) {
 		int i = 1;
 		List<Field> contents = msg.getContents();
@@ -225,33 +295,33 @@ public class FollowGradientFieldState extends AgentState {
 		this.setStep(0);
 		this.setWaitForList(Optional.absent());
 	}
-	
+
 	private void sendMoveAside() {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("move-aside")
 				.addField("requester", this.getRequester().get())
 				.addField("propagator", this.getAgent().getName())
 				.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
 				.addField("parcel-waiting-since", Long.toString(this.getParcelWaitingSince()))
-				.addField("want-pos", this.getNextSelectedPoint().get().toString())
+				.addField("want-pos", this.getNextRequestedPoint().get().toString())
 				.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
 				.addField("step", Integer.toString(this.getStep()))
 				.build());
 	}
-	
+
 	private void sendAck(String requester, String propagator) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("ack")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.build());
 	}
-	
+
 	private void sendReject(String requester, String propagator) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.build());
 	}
-	
+
 	private void sendRelease() {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
 				.addField("requester", this.getRequester().get())
@@ -284,39 +354,47 @@ public class FollowGradientFieldState extends AgentState {
 	private Optional<String> getRequester() {
 		return this.requester;
 	}
-	
+
 	private void setRequester(Optional<String> requester) {
 		this.requester = requester;
 	}
-	
+
 	private long getParcelWaitingSince() {
 		return this.parcelWaitingSince;
 	}
-	
+
 	private void setParcelWaitingSince(long parcelWaitingSince) {
 		this.parcelWaitingSince = parcelWaitingSince;
 	}
-	
+
 	private int getStep() {
 		return this.step;
 	}
-	
+
 	private void setStep(int step) {
 		this.step = step;
 	}
-	
+
+	private Optional<Point> getNextRequestedPoint() {
+		return this.nextRequestedPoint;
+	}
+
+	private void setNextRequestedPoint(Optional<Point> point) {
+		this.nextRequestedPoint = point;
+	}
+
 	private Optional<Point> getNextSelectedPoint() {
-		return this.nextSelectedPoint;
+		return nextSelectedPoint;
 	}
-	
-	private void setNextSelectedPoint(Optional<Point> point) {
-		this.nextSelectedPoint = point;
+
+	private void setNextSelectedPoint(Optional<Point> nextSelectedPoint) {
+		this.nextSelectedPoint = nextSelectedPoint;
 	}
-	
+
 	private Optional<List<String>> getWaitForList() {
 		return this.waitForList;
 	}
-	
+
 	private List<String> getWaitForListWithSelf() throws IllegalStateException {
 		if (! this.getWaitForList().isPresent()) {
 			throw new IllegalStateException("should only be called if there is a wait-for list");
@@ -325,8 +403,16 @@ public class FollowGradientFieldState extends AgentState {
 		toReturn.add(this.getAgent().getName());
 		return toReturn;
 	}
-	
+
 	private void setWaitForList(Optional<List<String>> waitForList) {
 		this.waitForList = waitForList;
+	}
+
+	private boolean hasMoved() {
+		return hasMoved;
+	}
+
+	private void setHasMoved(boolean hasMoved) {
+		this.hasMoved = hasMoved;
 	}
 }
