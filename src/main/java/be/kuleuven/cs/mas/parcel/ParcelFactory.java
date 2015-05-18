@@ -18,9 +18,13 @@ public class ParcelFactory {
 
     private Random random = new Random();
     private FieldStrategy fieldStrategy;
+    private List<Point> storageSites;
+    private List<Point> ioSites;
 
-    public ParcelFactory(FieldStrategy fieldStrategy) {
+    public ParcelFactory(FieldStrategy fieldStrategy, List<Point> storageSites, List<Point> ioSites) {
         this.fieldStrategy = fieldStrategy;
+        this.storageSites = new ArrayList<>(storageSites);
+        this.ioSites = new ArrayList<>(ioSites);
     }
 
     /**
@@ -40,11 +44,11 @@ public class ParcelFactory {
         List<Point> sources;
         List<Point> targets;
         if (outgoing) {
-            sources = GraphUtils.getShelfSites();
-            targets = GraphUtils.getDropOffSites();
+            sources = storageSites;
+            targets = ioSites;
         } else {
-            sources = GraphUtils.getDropOffSites();
-            targets = GraphUtils.getShelfSites();
+            sources = ioSites;
+            targets = storageSites;
         }
 
         // Filter out all source points where a parcel can be waiting that does not have a waiting parcel already
