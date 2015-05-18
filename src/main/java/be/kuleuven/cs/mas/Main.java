@@ -1,7 +1,7 @@
 package be.kuleuven.cs.mas;
 
+import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.agent.AgentFactory;
-import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;

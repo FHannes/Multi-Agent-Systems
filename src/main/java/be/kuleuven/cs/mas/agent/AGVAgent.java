@@ -1,4 +1,4 @@
-package be.kuleuven.cs.mas;
+package be.kuleuven.cs.mas.agent;
 
 import be.kuleuven.cs.mas.architecture.AgentState;
 import be.kuleuven.cs.mas.architecture.FollowGradientFieldState;

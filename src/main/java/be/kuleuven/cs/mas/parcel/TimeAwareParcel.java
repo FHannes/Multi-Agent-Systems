@@ -1,5 +1,6 @@
 package be.kuleuven.cs.mas.parcel;
 
+import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
@@ -98,7 +99,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	}
 
 	/**
-	 * To be called when the parcel is picked up by an {@link be.kuleuven.cs.mas.AGVAgent}.
+	 * To be called when the parcel is picked up by an {@link AGVAgent}.
 	 */
 	public void notifyPickup() {
 		position = Optional.absent();

@@ -1,6 +1,5 @@
 package be.kuleuven.cs.mas.agent;
 
-import be.kuleuven.cs.mas.AGVAgent;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;

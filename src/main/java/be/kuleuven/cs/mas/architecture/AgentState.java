@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.architecture;
 
-import be.kuleuven.cs.mas.AGVAgent;
+import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.google.common.base.Optional;
