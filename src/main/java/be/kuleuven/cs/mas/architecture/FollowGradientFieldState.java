@@ -3,14 +3,19 @@ package be.kuleuven.cs.mas.architecture;
 import be.kuleuven.cs.mas.AGVAgent;
 import be.kuleuven.cs.mas.message.AgentMessage;
 import be.kuleuven.cs.mas.message.Field;
+import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import com.github.rinde.rinsim.core.TimeLapse;
+import com.github.rinde.rinsim.core.model.pdp.Parcel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 
 public class FollowGradientFieldState extends AgentState {
 
@@ -32,6 +37,37 @@ public class FollowGradientFieldState extends AgentState {
 		// TODO move code related to following gradient field here, exclude points in forbiddenPoints from
 		// possible points to move to
 
+		if (getAgent().getPDPModel().getContents(getAgent()).isEmpty()) {
+			Set<TimeAwareParcel> parcels = getAgent().getRoadModel().getObjectsAt(getAgent(), TimeAwareParcel.class);
+			if (!parcels.isEmpty()) {
+				TimeAwareParcel parcel = parcels.stream().findFirst().get();
+				getAgent().getPDPModel().pickup(getAgent(), parcel, timeLapse);
+			}
+		}
+
+		ImmutableSet<Parcel> parcels = getAgent().getPDPModel().getContents(getAgent());
+		if (!parcels.isEmpty()) {
+			TimeAwareParcel parcel = (TimeAwareParcel) parcels.stream().findFirst().get();
+			parcel.notifyPickup();
+			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), parcel)));
+			return;
+		}
+
+		Set<Point> occupied = getAgent().getOccupiedPointsInVisualRange();
+		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
+		while (!targets.isEmpty()) {
+			Point target = targets.peek();
+			if (!forbiddenPoints.containsValue(target) && !occupied.contains(target)) {
+				break;
+			}
+			targets.poll();
+		}
+		Point target = targets.poll();
+		if (target == null) {
+
+		} else {
+
+		}
 	}
 
 	@Override

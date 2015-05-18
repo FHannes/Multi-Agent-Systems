@@ -111,9 +111,13 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     @Override
     public void afterTick(TimeLapse timeLapse) {}
 
+	public GradientModel getGradientModel() {
+		return gradientModel;
+	}
+
     @Override
-    public void setModel(GradientModel model) {
-        this.gradientModel = model;
+    public void setGradientModel(GradientModel gradientModel) {
+        this.gradientModel = gradientModel;
     }
 
     @Override

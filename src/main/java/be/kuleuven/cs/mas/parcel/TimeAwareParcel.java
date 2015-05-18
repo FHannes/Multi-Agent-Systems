@@ -83,7 +83,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	}
 
 	@Override
-	public void setModel(GradientModel model) {
+	public void setGradientModel(GradientModel model) {
 		this.gradientModel = model;
 	}
 
@@ -102,6 +102,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	 */
 	public void notifyPickup() {
 		position = Optional.absent();
+		gradientModel.unregister(this);
 	}
 
 }

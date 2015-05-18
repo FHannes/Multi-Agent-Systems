@@ -57,7 +57,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         return getGradient(point, Collections.emptySet());
     }
 
-    public Point getGradientTarget(FieldEmitter emitter) {
+    public Queue<Point> getGradientTargets(FieldEmitter emitter) {
         Set<FieldEmitter> exclusion = new HashSet<>();
         exclusion.add(emitter);
 
@@ -65,9 +65,9 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
                 Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
         );
 
-        return gradientValues.keySet().stream().min(
+        return gradientValues.keySet().stream().sorted(
                 (p1, p2) -> gradientValues.get(p1) - gradientValues.get(p2) < 0 ? -1 : 1
-        ).orElse(null);
+        ).collect(Collectors.toCollection(LinkedList::new));
     }
 
     public List<FieldEmitter> getEmitters() {
@@ -77,13 +77,13 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     @Override
     public boolean register(FieldEmitter element) {
         emitters.add(element);
-        element.setModel(this);
+        element.setGradientModel(this);
         return true;
     }
 
     @Override
     public boolean unregister(FieldEmitter element) {
-        element.setModel(null);
+        element.setGradientModel(null);
         emitters.remove(element);
         return true;
     }
