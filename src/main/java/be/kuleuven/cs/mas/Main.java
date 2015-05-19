@@ -3,6 +3,7 @@ package be.kuleuven.cs.mas;
 import be.kuleuven.cs.mas.agent.AgentFactory;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
+import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;
 import com.github.rinde.rinsim.core.Simulator;
@@ -57,7 +58,13 @@ public class Main {
 
     public void populate() {
         sim.register(agentFactory.makeAgent());
+        sim.register(agentFactory.makeAgent());
+        sim.register(agentFactory.makeAgent());
 
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
         sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
     }
 
@@ -68,7 +75,8 @@ public class Main {
                                 .showNodes()
                                 .showDirectionArrows()
                 )
-                .with(RoadUserRenderer.builder())
+                .with(RoadUserRenderer.builder()
+                                .addImageAssociation(TimeAwareParcel.class, "/graphics/perspective/deliverypackage2.png"))
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
