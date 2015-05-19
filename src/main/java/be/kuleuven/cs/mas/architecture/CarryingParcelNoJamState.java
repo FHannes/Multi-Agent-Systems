@@ -66,12 +66,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
 		} else {
 			// otherwise, move forward
-			try {
-				this.getAgent().followPath(timeLapse);
-			} catch(DeadlockException e) {
-				System.err.println("Well, shit");
-			}
-			
+			this.getAgent().followPath(timeLapse);
 		}
 	}
 	

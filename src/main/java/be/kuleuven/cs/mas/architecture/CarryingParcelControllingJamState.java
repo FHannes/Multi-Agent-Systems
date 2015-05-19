@@ -66,7 +66,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (! this.getAgent().occupiedPointsOnPathWithinRange()) {
 			// we are home free
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), false)));
+			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), true)));
 		}
 	}
 
