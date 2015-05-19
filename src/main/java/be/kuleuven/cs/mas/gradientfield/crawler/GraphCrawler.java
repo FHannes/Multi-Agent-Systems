@@ -55,6 +55,10 @@ public class GraphCrawler {
         while (tree.containsKey(point)) {
             Point target = tree.get(point);
             distance += Point.distance(point, target);
+            if (point == target) {
+                break;
+            }
+            point = target;
         }
         return distance;
     }
