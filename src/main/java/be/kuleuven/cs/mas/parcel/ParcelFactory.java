@@ -33,9 +33,10 @@ public class ParcelFactory {
      * @param outgoing
      *        The parcel generated has to be outgoing. This means that it is to be picked up from one of the shelves in
      *        the warehouse and transported to a drop-off site where the warehouse's I/O occurs.
+     * @param currentTime
      * @return A new {@link TimeAwareParcel} instance.
      */
-    public TimeAwareParcel makeParcel(boolean outgoing) {
+    public TimeAwareParcel makeParcel(boolean outgoing, long currentTime) {
         // Get set of shelf sites and drop-off sites
         List<Point> sources;
         List<Point> targets;
@@ -57,14 +58,14 @@ public class ParcelFactory {
         Point target = targets.get(rng.nextInt(targets.size()));
 
         // Create and return emitter
-        return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, System.currentTimeMillis());
+        return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, currentTime);
     }
 
-    public TimeAwareParcel makeParcel() {
+    public TimeAwareParcel makeParcel(long currentTime) {
         boolean outgoing = rng.nextBoolean();
-        TimeAwareParcel parcel = makeParcel(outgoing);
+        TimeAwareParcel parcel = makeParcel(outgoing, currentTime);
         if (parcel == null) {
-            parcel = makeParcel(!outgoing);
+            parcel = makeParcel(!outgoing, currentTime);
         }
         return parcel;
     }

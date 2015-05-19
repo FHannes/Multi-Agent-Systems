@@ -46,7 +46,8 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     private String name;
     private Point mostRecentPosition;
 
-    public AGVAgent(RandomGenerator r, FieldStrategy fieldStrategy, int visualRange, Point startPosition, String name) {
+    public AGVAgent(RandomGenerator r, FieldStrategy fieldStrategy, int visualRange, Point startPosition, String name,
+					double capacity) {
         rng = r;
 		this.fieldStrategy = fieldStrategy;
         roadModel = Optional.absent();
@@ -60,6 +61,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
         this.setStartPosition(startPosition);
         this.mostRecentPosition = startPosition;
         this.name = name;
+		this.setCapacity(capacity);
     }
     
     public void initRoadPDP(RoadModel roadModel, PDPModel pdpModel) {
@@ -230,7 +232,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 		if (! this.getParcel().isPresent()) {
 			return;
 		}
-		this.path = new LinkedList<>(this.getRoadModel().getShortestPathTo(this, this.getParcel().get()));
+		this.path = new LinkedList<>(this.getRoadModel().getShortestPathTo(this, this.getParcel().get().getDestination()));
 	}
 	
 	public Optional<Point> getRandomReachablePoint(Set<Point> excludeSet) {

@@ -13,6 +13,7 @@ import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.GraphRoadModelRenderer;
+import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.RandomGeneratorFactory;
 
@@ -29,12 +30,14 @@ public class Main {
     private final ParcelFactory parcelFactory;
 
     private final CommModel commModel;
+    private final PDPModel pdpModel;
     private final RoadModel roadModel;
 
     private final Simulator sim;
 
     public Main() {
         commModel = CommModel.builder().build();
+        pdpModel = DefaultPDPModel.create();
         roadModel = CollisionGraphRoadModel.builder(GraphUtils.createGraph())
                 .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
                 .build();
@@ -46,7 +49,7 @@ public class Main {
 
         sim = Simulator.builder()
                 .addModel(commModel)
-                .addModel(DefaultPDPModel.create())
+                .addModel(pdpModel)
                 .addModel(roadModel)
                 .addModel(new GradientModel())
                 .build();
@@ -55,7 +58,7 @@ public class Main {
     public void populate() {
         sim.register(agentFactory.makeAgent());
 
-        sim.register(parcelFactory.makeParcel(false));
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
     }
 
     public void run() {
@@ -65,6 +68,7 @@ public class Main {
                                 .showNodes()
                                 .showDirectionArrows()
                 )
+                .with(RoadUserRenderer.builder())
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )

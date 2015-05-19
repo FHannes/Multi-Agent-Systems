@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 public class AgentFactory {
 
+    public final static double CAPACITY = 1.0D;
+
     private final RandomGenerator rng;
     private final FieldStrategy fieldStrategy;
     private final RoadModel roadModel;
@@ -38,7 +40,7 @@ public class AgentFactory {
             return null;
         } else {
             return new AGVAgent(rng, fieldStrategy, visualRange, freeSpawns.get(rng.nextInt(freeSpawns.size())),
-                    String.format("agent%d", ++idCounter));
+                    String.format("agent%d", ++idCounter), CAPACITY);
         }
     }
 
