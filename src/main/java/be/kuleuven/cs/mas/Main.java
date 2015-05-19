@@ -2,11 +2,13 @@ package be.kuleuven.cs.mas;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.agent.AgentFactory;
+import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;
 import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
+import com.github.rinde.rinsim.pdptw.common.PDPRoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.GraphRoadModelRenderer;
@@ -29,12 +31,13 @@ public class Main {
 
     public static void main(String[] args) {
         final Simulator sim = Simulator.builder()
-                .addModel(CollisionGraphRoadModel.builder(GraphUtils.createGraph())
+                .addModel(new PDPRoadModel(CollisionGraphRoadModel.builder(GraphUtils.createGraph())
                         .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
-                        .build())
+                        .build(), true))
+                .addModel(new GradientModel())
                 .build();
 
-        for (int i = 0; i < 20; i++) {
+        /*for (int i = 0; i < 20; i++) {
             sim.register(new AGVAgent(sim.getRandomGenerator(), GraphUtils.VISUAL_RANGE));
         }
 
@@ -47,7 +50,7 @@ public class Main {
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
-                .show();
+                .show();*/
     }
 
 }
