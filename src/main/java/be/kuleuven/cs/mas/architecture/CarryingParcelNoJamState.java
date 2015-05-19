@@ -8,6 +8,7 @@ import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public class CarryingParcelNoJamState extends CarryingParcelState {
@@ -17,8 +18,21 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 		agent.setParcel(parcel);
 	}
 	
+	public CarryingParcelNoJamState(AGVAgent agent, List<ReleaseBacklog> backLogs, TimeAwareParcel parcel) {
+		super(agent, backLogs);
+		agent.setParcel(parcel);
+	}
+	
 	public CarryingParcelNoJamState(AGVAgent agent, boolean replanRoute) {
 		super(agent);
+		assert(agent.getParcel().isPresent());
+		if (replanRoute) {
+			agent.replanRoute();
+		}
+	}
+	
+	public CarryingParcelNoJamState(AGVAgent agent, List<ReleaseBacklog> backLogs, boolean replanRoute) {
+		super(agent, backLogs);
 		assert(agent.getParcel().isPresent());
 		if (replanRoute) {
 			agent.replanRoute();
@@ -35,7 +49,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
 				// parcel has been delivered, so follow gradient field now
 				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
-				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent())));
+				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
 			}
 			return;
 		}
@@ -88,7 +102,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			.addField("propagator", msg.getPropagator())
 			.addField("timestamp", Long.toString(msg.getTimeStamp()));
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
 		}
 	}
 
@@ -103,8 +117,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 
 	@Override
 	protected void processReleaseMessage(ReleaseMessage msg) {
-		// TODO Auto-generated method stub
-		
+		super.processReleaseMessage(msg);
 	}
 
 	@Override

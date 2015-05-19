@@ -1,15 +1,21 @@
 package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.google.common.base.Optional;
 
+import java.util.List;
 import java.util.regex.Matcher;
 
 public abstract class CarryingParcelState extends AgentState {
 
 	public CarryingParcelState(AGVAgent agent) {
 		super(agent);
+	}
+	
+	public CarryingParcelState(AGVAgent agent, List<ReleaseBacklog> backLogs) {
+		super(agent, backLogs);
 	}
 
 	@Override

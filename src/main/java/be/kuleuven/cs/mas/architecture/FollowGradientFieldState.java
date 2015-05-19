@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -35,6 +36,12 @@ public class FollowGradientFieldState extends AgentState {
 		requester = Optional.absent();
 		nextRequestedPoint = Optional.absent();
 	}
+	
+	public FollowGradientFieldState(AGVAgent agent, List<ReleaseBacklog> backLogs) {
+		super(agent, backLogs);
+		requester = Optional.absent();
+		nextRequestedPoint = Optional.absent();
+	}
 
 	@Override
 	public void act(TimeLapse timeLapse) {
@@ -53,7 +60,13 @@ public class FollowGradientFieldState extends AgentState {
 		if (!parcels.isEmpty()) {
 			TimeAwareParcel parcel = (TimeAwareParcel) parcels.stream().findFirst().get();
 			parcel.notifyPickup();
-			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), parcel)));
+			// expand backlogs
+			if (this.getRequester().isPresent()) {
+				List<ReleaseBacklog> backlogs = this.getBackLogs();
+				List<String> toPropagateFor = new ArrayList<String>(this.getForbiddenPoints().keySet());
+				backlogs.add(new ReleaseBacklog(this.getRequester().get(), this.getTimeStamp(), toPropagateFor));
+			}
+			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), this.getBackLogs(), parcel)));
 			return;
 		}
 
@@ -71,7 +84,7 @@ public class FollowGradientFieldState extends AgentState {
 				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint())
 				&& ! occupied.contains(this.getNextSelectedPoint().get())
 				&& ! this.getForbiddenPoints().values().contains(this.getNextSelectedPoint())) {
-			this.sendRelease(this.getTimeStamp());
+			this.sendRelease(this.getRequester().get(), this.getTimeStamp());
 			this.setNextRequestedPoint(Optional.absent());
 			this.setHasMoved(true);
 		}
@@ -103,7 +116,8 @@ public class FollowGradientFieldState extends AgentState {
 				Set<Point> excludeSet = new HashSet<Point>(this.getForbiddenPoints().values());
 				excludeSet.addAll(Arrays.asList(forbidden));
 				this.setNextRequestedPoint((this.getAgent().getRandomNeighbourPoint(excludeSet)));
-				this.sendMoveAside();
+				this.sendMoveAside(this.getRequester().get(), this.getWaitForList().get(), this.getTimeStamp(),
+						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
 			}
 		} else {
 			this.setNextSelectedPoint(Optional.of(target.get()));
@@ -117,7 +131,8 @@ public class FollowGradientFieldState extends AgentState {
 		if (!target.isPresent()) {
 			if (this.getRequester().isPresent() && this.getNextRequestedPoint().isPresent()
 					&& !this.hasMoved()) {
-				this.sendMoveAside();
+				this.sendMoveAside(this.getRequester().get(), this.getWaitForList().get(), this.getTimeStamp(),
+						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
 			}
 		} else {
 			this.setNextSelectedPoint(Optional.of(target.get()));
@@ -126,7 +141,7 @@ public class FollowGradientFieldState extends AgentState {
 
 	protected void processMoveAsideMessage(MoveAsideMessage msg) {
 		boolean handleDeadlock = false;
-		if (this.hasDeadlock(msg.getWaitForList()) && msg.getTimeStamp() >= this.getTimeStamp()) {
+		if (this.getRequester().isPresent() && this.hasDeadlock(msg.getWaitForList()) && msg.getTimeStamp() >= this.getTimeStamp()) {
 			handleDeadlock = true;
 		}
 		if (! handleDeadlock &&
@@ -148,7 +163,7 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		if (handleDeadlock) {
-			this.sendRelease(this.getTimeStamp());
+			this.sendRelease(this.getRequester().get(), this.getTimeStamp());
 			this.followGradientField(this.getAgent().getOccupiedPointsInVisualRange(), this.getNextRequestedPoint().get());
 		}
 		if (this.getRequester().isPresent() && this.getRequester().get().equals(msg.getRequester()) && msg.getStep() < this.getStep()) {
@@ -160,7 +175,7 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		if (! this.getRequester().isPresent() || ! this.getRequester().get().equals(msg.getRequester())) {
 			if (this.getRequester().isPresent() && ! this.getRequester().get().equals(msg.getRequester())) {
-				this.sendRelease(this.getTimeStamp());
+				this.sendRelease(this.getRequester().get(), this.getTimeStamp());
 			}
 			this.setRequester(Optional.of(msg.getRequester()));
 			this.setParcelWaitingSince(msg.getParcelWaitingSince());
@@ -200,56 +215,20 @@ public class FollowGradientFieldState extends AgentState {
 	}
 
 	protected void processReleaseMessage(ReleaseMessage msg) {
+		super.processReleaseMessage(msg);
 		if (! this.getRequester().isPresent() || ! msg.getRequester().equals(this.getRequester().get())) {
 			return;
 		}
 		if (msg.getTimeStamp() < this.getTimeStamp()) {
 			return;
 		}
-		this.sendRelease(this.getTimeStamp()); // release all agents this agent (indirectly) caused to activate "get out of the way"
+		this.sendRelease(this.getRequester().get(), this.getTimeStamp()); // release all agents this agent (indirectly) caused to activate "get out of the way"
 		this.getForbiddenPoints().removeAll(msg.getPropagator());
 		this.setRequester(Optional.absent());
 		this.setParcelWaitingSince(0);
 		this.setStep(0);
 		this.setTimeStamp(0);
 		this.setWaitForList(Optional.absent());
-	}
-
-	private void sendMoveAside() {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("move-aside")
-				.addField("requester", this.getRequester().get())
-				.addField("propagator", this.getAgent().getName())
-				.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
-				.addField("timestamp", Long.toString(this.getTimeStamp()))
-				.addField("parcel-waiting-since", Long.toString(this.getParcelWaitingSince()))
-				.addField("want-pos", this.getNextRequestedPoint().get().toString())
-				.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
-				.addField("step", Integer.toString(this.getStep()))
-				.build());
-	}
-
-	private void sendAck(String requester, String propagator, long timeStamp) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("ack")
-				.addField("requester", requester)
-				.addField("propagator", propagator)
-				.addField("timestamp", Long.toString(timeStamp))
-				.build());
-	}
-
-	private void sendReject(String requester, String propagator, long timeStamp) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
-				.addField("requester", requester)
-				.addField("propagator", propagator)
-				.addField("timestamp", Long.toString(timeStamp))
-				.build());
-	}
-
-	private void sendRelease(long timeStamp) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
-				.addField("requester", this.getRequester().get())
-				.addField("propagator", this.getAgent().getName())
-				.addField("timestamp", Long.toString(this.getTimeStamp()))
-				.build());
 	}
 
 	@Override

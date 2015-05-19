@@ -9,6 +9,7 @@ import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -28,9 +29,15 @@ public abstract class AgentState {
 	protected static final String DEADLOCK_SEP = ",";
 	
 	protected AGVAgent agent;
+	private List<ReleaseBacklog> backLogs = new LinkedList<>();
 	
 	public AgentState(AGVAgent agent) {
 		this.agent = agent;
+	}
+	
+	protected AgentState(AGVAgent agent, List<ReleaseBacklog> backLogs) {
+		this(agent);
+		this.backLogs = backLogs;
 	}
 	
 	/**
@@ -114,6 +121,20 @@ public abstract class AgentState {
 	
 	protected abstract void processMoveAsideMessage(MoveAsideMessage msg);
 	
+	protected void sendMoveAside(String requester, List<String> waitFor, long timeStamp, long parcelWaitingSince,
+			Point wantPos, int step) {
+		this.getAgent().getMessageBuilder().addField("move-aside")
+		.addField("requester", requester)
+		.addField("propagator", this.getAgent().getName())
+		.addField("wait-for", toWaitForString(waitFor))
+		.addField("timestamp", Long.toString(timeStamp))
+		.addField("parcel-waiting-since", Long.toString(parcelWaitingSince))
+		.addField("want-pos", wantPos.toString())
+		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
+		.addField("step", Integer.toString(step));
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
+	}
+	
 	protected static Optional<ReleaseMessage> parseReleaseMessage(List<Field> contents) {
 		int i = 1;
 		if (! contents.get(i).getName().equals("requester")) {
@@ -131,7 +152,27 @@ public abstract class AgentState {
 		return Optional.of(new ReleaseMessage(requester, propagator, timeStamp));
 	}
 	
-	protected abstract void processReleaseMessage(ReleaseMessage msg);
+	// MUST OVERRIDE
+	protected void processReleaseMessage(ReleaseMessage msg) {
+		Iterator<ReleaseBacklog> it = this.getBackLogs().iterator();
+		while (it.hasNext()) {
+			ReleaseBacklog log = it.next();
+			if (log.getRequester().equals(msg.getRequester()) && log.getPropagators().contains(msg.getPropagator())) {
+				this.sendRelease(log.getRequester(), log.getTimeStamp());
+				if (log.isEmpty()) {
+					it.remove();
+				}
+			}
+		}
+	}
+	
+	protected void sendRelease(String requester, long timeStamp) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
+				.addField("requester", requester)
+				.addField("propagator", this.getAgent().getName())
+				.addField("timestamp", Long.toString(timeStamp))
+				.build());
+	}
 	
 	protected static Optional<HomeFreeMessage> parseHomeFreeMessage(List<Field> contents) {
 		int i = 1;
@@ -143,6 +184,11 @@ public abstract class AgentState {
 	}
 	
 	protected abstract void processHomeFreeMessage(HomeFreeMessage msg);
+	
+	protected void sendHomeFree() {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("home-free")
+				.addField("requester", this.getAgent().getName()).build());
+	}
 	
 	protected static Optional<RejectMessage> parseRejectMessage(List<Field> contents) {
 		int i = 1;
@@ -163,6 +209,14 @@ public abstract class AgentState {
 	
 	protected abstract void processRejectMessage(RejectMessage msg);
 	
+	protected void sendReject(String requester, String propagator, long timeStamp) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
+				.addField("requester", requester)
+				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
+				.build());
+	}
+	
 	protected static Optional<AckMessage> parseAckMessage(List<Field> contents) {
 		int i = 1;
 		if (! contents.get(i).getName().equals("requester")) {
@@ -180,6 +234,14 @@ public abstract class AgentState {
 		return Optional.of(new AckMessage(requester, propagator, timeStamp));
 	}
 	
+	protected void sendAck(String requester, String propagator, long timeStamp) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("ack")
+				.addField("requester", requester)
+				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
+				.build());
+	}
+	
 	protected abstract void processAckMessage(AckMessage msg);
 	
 	protected AGVAgent getAgent() {
@@ -188,6 +250,10 @@ public abstract class AgentState {
 	
 	protected void sendMessage(AgentMessage message) {
 		this.getAgent().sendMessage(message);
+	}
+	
+	protected List<ReleaseBacklog> getBackLogs() {
+		return this.backLogs;
 	}
 	
 	public abstract void uponSet();

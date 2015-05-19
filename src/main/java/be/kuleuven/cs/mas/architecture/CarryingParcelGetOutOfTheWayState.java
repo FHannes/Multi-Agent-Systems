@@ -1,6 +1,7 @@
 package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
@@ -31,6 +32,18 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		
 		this.doMoveAside(propagatorPos);
 	}
+	
+	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, List<ReleaseBacklog> backLogs, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorPos) {
+		super(agent, backLogs);
+		this.requester = requester;
+		this.propagator = propagator;
+		this.parcelWaitTime = parcelWaitTime;
+		this.step = step;
+		this.waitForList = waitForList;
+		this.timeStamp = timeStamp;
+		
+		this.doMoveAside(propagatorPos);
+	}
 
 	@Override
 	public void act(TimeLapse timeLapse) {
@@ -41,7 +54,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
 				// parcel has been delivered, so follow gradient field now
 				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
-				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent())));
+				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
 			}
 			return;
 		}
@@ -70,7 +83,8 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.setWaitingOnOther(true);
 		if (this.timeOutOccurred() || !wasAlreadyWaiting) {
 			// resend move-aside
-			this.resendMoveAside();
+			this.sendMoveAside(this.getRequester(), this.getWaitForListWithSelf(), this.getTimeStamp(),
+					this.getParcelWaitTime(), this.getNextWantedPoint(), this.getStep());
 		}
 	}
 
@@ -85,42 +99,11 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.getAgent().setAgentState(nextState.get());
 	}
 	
-	private void resendMoveAside() {
-		this.getAgent().getMessageBuilder().addField("move-aside")
-		.addField("requester", this.getRequester())
-		.addField("propagator", this.getAgent().getName())
-		.addField("wait-for", toWaitForString(this.getWaitForListWithSelf()))
-		.addField("timestamp", Long.toString(this.getTimeStamp()))
-		.addField("parcel-waiting-since", Long.toString(this.getParcelWaitTime()))
-		.addField("want-pos", this.getNextWantedPoint().toString())
-		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
-		.addField("step", Integer.toString(this.getStep()));
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
+	@Override
+	protected void sendMoveAside(String requester, List<String> waitFor, long timeStamp, long parcelWaitingSince,
+			Point wantPos, int step) {
+		super.sendMoveAside(requester, waitFor, timeStamp, parcelWaitingSince, wantPos, step);
 		this.setTimeOutCount(0);
-	}
-	
-	private void sendAck(String requester, String propagator, long timeStamp) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("ack")
-				.addField("requester", requester)
-				.addField("propagator", propagator)
-				.addField("timestamp", Long.toString(timeStamp))
-				.build());
-	}
-	
-	private void sendReject(String requester, String propagator, long timeStamp) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("reject")
-				.addField("requester", requester)
-				.addField("propagator", propagator)
-				.addField("timestamp", Long.toString(timeStamp))
-				.build());
-	}
-	
-	private void sendRelease() {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("release")
-				.addField("requester", this.getRequester())
-				.addField("propagator", this.getAgent().getName())
-				.addField("timestamp", Long.toString(this.getTimeStamp()))
-				.build());
 	}
 	
 	protected void processMoveAsideMessage(MoveAsideMessage msg) {
@@ -135,7 +118,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			return;
 		}
 		if (handleDeadlock) { // if there is a deadlock, it can now be handled properly
-			this.sendRelease();
+			this.sendRelease(this.getRequester(), this.getTimeStamp());
 			this.doMoveAside(msg.getAtPos(), this.getNextWantedPoint()); // try again, this time trying to move to a different point
 			// this will always work because only "get out of the way" agents at a junction will ever detect deadlock
 			// since the controller will detect it first in the other case
@@ -171,7 +154,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			this.setTimeOutCount(0);
 			this.setTimeStamp(msg.getTimeStamp());
 			this.setWaitingOnOther(false);
-			this.sendRelease();
+			this.sendRelease(this.getRequester(), this.getTimeStamp());
 			this.doMoveAside(msg.getAtPos());
 		}
 	}
@@ -206,6 +189,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	}
 	
 	protected void processReleaseMessage(ReleaseMessage msg) {
+		super.processReleaseMessage(msg);
 		if (! msg.getRequester().equals(this.getRequester())) {
 			return;
 		}
@@ -216,13 +200,13 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			return;
 		}
 		// the propagator has released this agent from coordinating the traffic jam
-		this.sendRelease(); // propagate the release in order to release agents this agent is (indirectly) waiting on
-		this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), true)));
+		this.sendRelease(this.getRequester(), this.getTimeStamp()); // propagate the release in order to release agents this agent is (indirectly) waiting on
+		this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), true)));
 	}
 	
 	protected void processHomeFreeMessage(HomeFreeMessage msg) {
 		if (msg.getRequester().equals(this.getRequester())) {
-			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), true)));
+			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), true)));
 		}
 	}
 	

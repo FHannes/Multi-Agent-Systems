@@ -1,11 +1,14 @@
 package be.kuleuven.cs.mas.architecture;
 
 import be.kuleuven.cs.mas.agent.AGVAgent;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel.ParcelState;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public class CarryingParcelControllingJamState extends CarryingParcelState {
@@ -17,6 +20,12 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 
 	public CarryingParcelControllingJamState(AGVAgent agent, long timeStamp) {
 		super(agent);
+		this.nextWantedPoint = agent.getNextPointOnPath().get();
+		this.timeStamp = timeStamp;
+	}
+	
+	public CarryingParcelControllingJamState(AGVAgent agent, List<ReleaseBacklog> backLogs, long timeStamp) {
+		super(agent, backLogs);
 		this.nextWantedPoint = agent.getNextPointOnPath().get();
 		this.timeStamp = timeStamp;
 	}
@@ -44,7 +53,8 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 
 		if (this.timeOutOccurred()) {
 			// resend move-aside
-			this.resendMoveAside();
+			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
+					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
 		}
 	}
 
@@ -56,7 +66,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (! this.getAgent().occupiedPointsOnPathWithinRange()) {
 			// we are home free
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), false)));
+			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), false)));
 		}
 	}
 
@@ -71,23 +81,11 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		this.getAgent().setAgentState(nextState.get());
 	}
 
-	private void resendMoveAside() {
-		this.getAgent().getMessageBuilder().addField("move-aside")
-		.addField("requester", this.getAgent().getName())
-		.addField("propagator", this.getAgent().getName())
-		.addField("wait-for", this.getAgent().getName())
-		.addField("timestamp", Long.toString(this.getTimeStamp()))
-		.addField("parcel-waiting-since", Long.toString(this.getAgent().getParcel().get().getWaitingSince()))
-		.addField("want-pos", this.getNextWantedPoint().toString())
-		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
-		.addField("step", Integer.toString(this.getStep()));
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
+	@Override
+	protected void sendMoveAside(String requester, List<String> waitFor, long timeStamp, long parcelWaitingSince,
+			Point wantPos, int step) {
+		super.sendMoveAside(requester, waitFor, timeStamp, parcelWaitingSince, wantPos, step);
 		this.setTimeOutCount(0);
-	}
-	
-	private void sendHomeFree() {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("home-free")
-				.addField("requester", this.getAgent().getName()).build());
 	}
 
 	private void tryDeliverParcel(TimeLapse timeLapse) {
@@ -99,7 +97,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
 			// parcel delivered, so start following the gradient field
 			this.getAgent().getParcel().get().notifyDelivered(timeLapse);
-			this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent())));
+			this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
 		}
 	}
 
@@ -156,7 +154,8 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (sawOwnName) {
 			// deadlock has occurred, restart protocol
 			this.sendHomeFree();
-			this.resendMoveAside();
+			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
+					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
 		}
 		if (this.trafficPriorityFunction(msg.getRequester(), msg.getParcelWaitingSince())) {
 			this.getAgent().getMessageBuilder().addField("reject")
@@ -172,7 +171,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
 			// release all agents waiting on this agent
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
 		}
 	}
 
@@ -207,8 +206,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 
 	@Override
 	protected void processReleaseMessage(ReleaseMessage msg) {
-		// TODO Auto-generated method stub
-		
+		super.processReleaseMessage(msg);
 	}
 
 	@Override
