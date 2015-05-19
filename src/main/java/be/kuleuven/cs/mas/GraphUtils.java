@@ -45,6 +45,8 @@ public class GraphUtils {
         Graphs.addBiPath(g, matrix.row(0).values());
         Graphs.addBiPath(g, Lists.reverse(newArrayList(matrix.row(
                 matrix.rowKeySet().size() - 2).values())));
+        Graphs.addBiPath(g, Lists.reverse(newArrayList(matrix.row(
+                matrix.rowKeySet().size() - 1).values())));
 
         return new ListenableGraph<>(g);
     }

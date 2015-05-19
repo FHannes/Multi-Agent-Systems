@@ -63,7 +63,6 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		}
 		
 		this.getOwnPDPModel().get().unregister(this);
-		this.getOwnRoadModel().get().removeObject(this);
 		this.setDelivered(true);
 		// TODO write relevant variables to experiment result 
 	}

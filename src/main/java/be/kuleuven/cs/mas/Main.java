@@ -6,6 +6,7 @@ import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;
+import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
 import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.comm.CommModel;
 import com.github.rinde.rinsim.core.model.pdp.*;
@@ -24,10 +25,10 @@ public class Main {
 
     private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
 
-    private final FieldStrategy agentFieldStrategy = new FieldTimeStrategy(1000);
+    private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final AgentFactory agentFactory;
 
-    private final FieldStrategy parcelFieldStrategy = new FieldTimeStrategy(1000);
+    private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final ParcelFactory parcelFactory;
 
     private final CommModel commModel;
@@ -76,7 +77,7 @@ public class Main {
                                 .showDirectionArrows()
                 )
                 .with(RoadUserRenderer.builder()
-                                .addImageAssociation(TimeAwareParcel.class, "/graphics/perspective/deliverypackage2.png"))
+                                .addImageAssociation(TimeAwareParcel.class, "/graphics/perspective/deliverypackage3.png"))
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
