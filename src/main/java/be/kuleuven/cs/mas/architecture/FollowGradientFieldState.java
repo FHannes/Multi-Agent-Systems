@@ -66,7 +66,7 @@ public class FollowGradientFieldState extends AgentState {
 			// expand backlogs
 			List<ReleaseBacklog> backlogs = this.getBackLogs();
 			if (this.getRequester().isPresent()) {
-				List<String> toPropagateFor = new ArrayList<String>(this.getForbiddenPoints().keySet());
+				List<String> toPropagateFor = new ArrayList<>(this.getForbiddenPoints().keySet());
 				backlogs.add(new ReleaseBacklog(this.getRequester().get(), this.getTimeStamp(), toPropagateFor));
 			}
 			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), backlogs, parcel)));
@@ -84,9 +84,9 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		if (this.getNextSelectedPoint().isPresent()
 				&& this.getNextRequestedPoint().isPresent()
-				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint())
+				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint().get())
 				&& ! occupied.contains(this.getNextSelectedPoint().get())
-				&& ! this.getForbiddenPoints().values().contains(this.getNextSelectedPoint())) {
+				&& ! this.getForbiddenPoints().values().contains(this.getNextSelectedPoint().get())) {
 			// agent has committed to different point than requested, so release any agents waiting on this one
 			this.sendRelease(this.getRequester().get(), this.getTimeStamp());
 			this.setNextRequestedPoint(Optional.absent());
@@ -97,9 +97,9 @@ public class FollowGradientFieldState extends AgentState {
 //				&& occupied.contains(this.getNextSelectedPoint().get())) {
 //			this.followGradientFieldTryRequested(occupied);
 //		}
-		if (this.getNextSelectedPoint().isPresent() && ! occupied.contains(this.getNextSelectedPoint())) {
+		if (this.getNextSelectedPoint().isPresent() && ! occupied.contains(this.getNextSelectedPoint().get())) {
 			this.getAgent().getRoadModel().moveTo(this.getAgent(), this.getNextSelectedPoint().get(), timeLapse);
-			if (this.getAgent().getMostRecentPosition().equals(this.getNextSelectedPoint())) {
+			if (this.getAgent().getMostRecentPosition().equals(this.getNextSelectedPoint().get())) {
 				this.setNextSelectedPoint(Optional.absent());
 			}
 		}
@@ -154,7 +154,7 @@ public class FollowGradientFieldState extends AgentState {
 			this.sendReject(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
 			return;
 		}
-		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
+		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
 				|| (this.getNextSelectedPoint().isPresent() &&
 						this.getNextSelectedPoint().get().equals(msg.getWantPos()) &&
 						this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(),
@@ -351,7 +351,7 @@ public class FollowGradientFieldState extends AgentState {
 	@Override
 	protected void processDoConfirmMessage(DoConfirmMessage msg) {
 		if (this.getPotentialRequestedPoint().isPresent() && this.getRequester().isPresent()) {
-			if (msg.getRequester().equals(this.getRequester()) && this.getForbiddenPoints().keySet().contains(msg.getPropagator())
+			if (msg.getRequester().equals(this.getRequester().get()) && this.getForbiddenPoints().keySet().contains(msg.getPropagator())
 					&& this.getTimeStamp() >= msg.getTimeStamp() && this.getAgent().getMostRecentPosition().equals(msg.getWantPos())) {
 				this.setNextRequestedPoint(this.getPotentialRequestedPoint());
 				this.setPotentialRequestedPoint(Optional.absent());
