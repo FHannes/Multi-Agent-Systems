@@ -24,10 +24,10 @@ import java.util.Set;
 public class FollowGradientFieldState extends AgentState {
 
 	private Multimap<String, Point> forbiddenPoints = LinkedHashMultimap.create();
-	private Optional<String> requester;
-	private Optional<Point> nextRequestedPoint;
-	private Optional<Point> potentialRequestedPoint;
-	private Optional<Point> nextSelectedPoint;
+	private Optional<String> requester = Optional.absent();
+	private Optional<Point> nextRequestedPoint = Optional.absent();
+	private Optional<Point> potentialRequestedPoint = Optional.absent();
+	private Optional<Point> nextSelectedPoint = Optional.absent();
 	private Map<String,List<String>> waitForMap = new HashMap<>();
 	private long timeStamp = 0;
 	private long parcelWaitingSince = 0;

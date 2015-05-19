@@ -103,7 +103,9 @@ public class VisualSensor {
 		
 		PointQueueEntry(Point point, Point from, int range, Direction direction) {
 			this.point = point;
+			this.from = from;
 			this.range = range;
+			this.direction = direction;
 		}
 		
 		private Point point;
