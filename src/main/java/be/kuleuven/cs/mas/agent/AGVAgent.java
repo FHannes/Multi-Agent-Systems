@@ -58,6 +58,7 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
         parcel = Optional.absent();
         state = new FollowGradientFieldState(this);
         sensor = new VisualSensor(this, visualRange);
+        this.msgBuilder = new AgentMessageBuilder();
         this.setStartPosition(startPosition);
         this.mostRecentPosition = startPosition;
         this.name = name;

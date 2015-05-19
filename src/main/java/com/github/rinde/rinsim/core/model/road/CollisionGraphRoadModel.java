@@ -231,12 +231,12 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	 * @throws IllegalArgumentException if no connection exists between
 	 *           <code>from</code> and <code>to</code>.
 	 */
-	public boolean hasRoadUserOn(Point from, Point to) {
+	public boolean hasRoadUserOn(Point from, Point to, RoadUser ignore) {
 		checkArgument(graph.hasConnection(from, to),
 				"There is no connection between %s and %s.", from, to);
-		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to))
-				|| this.posKeyHasMovingRoadUser(from) || this.posKeyHasMovingRoadUser(to)
-				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from)) : false);
+		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+				|| this.posKeyHasMovingRoadUser(from, ignore) || this.posKeyHasMovingRoadUser(to, ignore)
+				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
 	}
 
 	/**
@@ -251,12 +251,12 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	 * @throws IllegalArgumentException if no connection exists between
 	 *           <code>from</code> and <code>to</code>.
 	 */
-	public boolean hasRoadUserOnIgnoreTo(Point from, Point to) {
+	public boolean hasRoadUserOnIgnoreTo(Point from, Point to, RoadUser ignore) {
 		checkArgument(graph.hasConnection(from, to),
 				"There is no connection between %s and %s.", from, to);
-		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to))
-				|| this.posKeyHasMovingRoadUser(from)
-				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from)) : false);
+		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+				|| this.posKeyHasMovingRoadUser(from, ignore)
+				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
 	}
 
 	/**
@@ -271,12 +271,12 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	 * @throws IllegalArgumentException if no connection exists between
 	 *           <code>from</code> and <code>to</code>.
 	 */
-	public boolean hasRoadUserOnIgnoreFrom(Point from, Point to) {
+	public boolean hasRoadUserOnIgnoreFrom(Point from, Point to, RoadUser ignore) {
 		checkArgument(graph.hasConnection(from, to),
 				"There is no connection between %s and %s.", from, to);
-		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to))
-				|| this.posKeyHasMovingRoadUser(to)
-				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from)) : false);
+		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+				|| this.posKeyHasMovingRoadUser(to, ignore)
+				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
 	}
 
 	/**
@@ -290,11 +290,11 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	 * @throws IllegalArgumentException if no connection exists between
 	 *           <code>from</code> and <code>to</code>.
 	 */
-	public boolean hasRoadUserOnIgnoreFromAndTo(Point from, Point to) {
+	public boolean hasRoadUserOnIgnoreFromAndTo(Point from, Point to, RoadUser ignore) {
 		checkArgument(graph.hasConnection(from, to),
 				"There is no connection between %s and %s.", from, to);
-		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to))
-				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from)) : false);
+		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
 	}
 	
 	public boolean isOnConnectionTo(RoadUser roadUser, Point to) {
@@ -306,18 +306,18 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 		return false;
 	}
 
-	private boolean connKeyHasMovingRoadUser(Connection<?> key) {
+	private boolean connKeyHasMovingRoadUser(Connection<?> key, RoadUser ignore) {
 		for (RoadUser user : connMap.get(key)) {
-			if (user instanceof MovingRoadUser) {
+			if (user instanceof MovingRoadUser && ! user.equals(ignore)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private boolean posKeyHasMovingRoadUser(Point key) {
+	private boolean posKeyHasMovingRoadUser(Point key, RoadUser ignore) {
 		for (RoadUser user : posMap.get(key)) {
-			if (user instanceof MovingRoadUser) {
+			if (user instanceof MovingRoadUser && ! user.equals(ignore)) {
 				return true;
 			}
 		}

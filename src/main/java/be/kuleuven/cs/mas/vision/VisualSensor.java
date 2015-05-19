@@ -26,6 +26,7 @@ public class VisualSensor {
 		}
 		
 		this.owner = owner;
+		this.visualRange = visualRange;
 	}
 	
 	public Set<Point> getOccupiedPointsWithinVisualRange() {
@@ -43,14 +44,14 @@ public class VisualSensor {
 			
 			// check if a RoadUser occupies the point or occupies the connection between it and the previous point
 			// with respect to the point of view of the VisualSensorOwner
-			if (this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint())) {
+			if (this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint(), this.getOwner())) {
 				toReturn.add(toCheck.getPoint());
 				added = true;
 			}
 			
 			// check if a RoadUser is driving towards the point from the next point in the considered direction
 			Optional<Point> otherEnd = this.getConnectedPointInDirection(toCheck.getPoint(), toCheck.getDirection());
-			if (otherEnd.isPresent() && this.getRoadModel().hasRoadUserOnIgnoreFromAndTo(otherEnd.get(), toCheck.getPoint())) {
+			if (otherEnd.isPresent() && this.getRoadModel().hasRoadUserOnIgnoreFromAndTo(otherEnd.get(), toCheck.getPoint(), this.getOwner())) {
 				if (! added) {
 					toReturn.add(toCheck.getPoint());
 				}
@@ -72,7 +73,7 @@ public class VisualSensor {
 	}
 	
 	private Point getPosition() {
-		return this.getOwner().getPosition().get();
+		return this.getOwner().getMostRecentPosition();
 	}
 	
 	private CollisionGraphRoadModel getRoadModel() {
