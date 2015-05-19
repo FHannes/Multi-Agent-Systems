@@ -49,7 +49,7 @@ public class Main {
     }
 
     public void populate() {
-        //sim.register(agentFactory.makeAgent());
+        sim.register(agentFactory.makeAgent());
     }
 
     public void run() {
