@@ -14,18 +14,21 @@ public class AgentFactory {
 
     private final RandomGenerator rng;
     private final FieldStrategy fieldStrategy;
+    private final RoadModel roadModel;
     private final int visualRange;
     private final List<Point> spawnSites;
     private int idCounter = 0;
 
-    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, int visualRange, List<Point> spawnSites) {
+    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, RoadModel roadModel, int visualRange,
+                        List<Point> spawnSites) {
         this.rng = rng;
         this.fieldStrategy = fieldStrategy;
+        this.roadModel = roadModel;
         this.visualRange = visualRange;
         this.spawnSites = spawnSites;
     }
 
-    public AGVAgent makeAgent(RoadModel roadModel) {
+    public AGVAgent makeAgent() {
         Set<Point> occupiedPoints = roadModel.getObjectsOfType(AGVAgent.class).stream().map(AGVAgent::getPosition)
                 .filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
 

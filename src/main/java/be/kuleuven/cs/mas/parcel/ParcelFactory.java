@@ -1,13 +1,11 @@
 package be.kuleuven.cs.mas.parcel;
 
-import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
-import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
+import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A factory which can be sued to create instances of {@link TimeAwareParcel}.
@@ -17,11 +15,12 @@ public class ParcelFactory {
     public final static double MAGNITUDE = 1.0D;
 
     private final RandomGenerator rng;
-    private FieldStrategy fieldStrategy;
-    private List<Point> storageSites;
-    private List<Point> ioSites;
+    private final FieldStrategy fieldStrategy;
+    private final List<Point> storageSites;
+    private final List<Point> ioSites;
 
-    public ParcelFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> storageSites, List<Point> ioSites) {
+    public ParcelFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> storageSites,
+                         List<Point> ioSites) {
         this.rng = rng;
         this.fieldStrategy = fieldStrategy;
         this.storageSites = new ArrayList<>(storageSites);
