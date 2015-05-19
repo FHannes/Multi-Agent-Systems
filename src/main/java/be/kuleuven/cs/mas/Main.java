@@ -59,6 +59,7 @@ public class Main {
         sim.register(agentFactory.makeAgent());
 
         sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
+        sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
     }
 
     public void run() {

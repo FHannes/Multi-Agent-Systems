@@ -43,7 +43,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 	public void act(TimeLapse timeLapse) {
 
 		// first of all, check if the parcel can be delivered
-		if (this.getAgent().getPosition().equals(this.getAgent().getParcel().get().getDestination())) {
+		if (this.getAgent().getPosition().get().equals(this.getAgent().getParcel().get().getDestination())) {
 			this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
 			// if parcel is not in cargo anymore, delivery was successful
 			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
