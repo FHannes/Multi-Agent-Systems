@@ -54,6 +54,8 @@ public class Main {
 
     public void populate() {
         sim.register(agentFactory.makeAgent());
+
+        sim.register(parcelFactory.makeParcel());
     }
 
     public void run() {

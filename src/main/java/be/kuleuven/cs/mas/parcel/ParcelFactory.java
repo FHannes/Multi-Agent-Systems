@@ -54,7 +54,7 @@ public class ParcelFactory {
 
         // Select random source and destination point
         Point source = sources.get(rng.nextInt(sources.size()));
-        Point target = targets.get(rng.nextInt(sources.size()));
+        Point target = targets.get(rng.nextInt(targets.size()));
 
         // Create and return emitter
         return new TimeAwareParcel(fieldStrategy, source, target, MAGNITUDE, System.currentTimeMillis());
