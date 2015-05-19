@@ -36,7 +36,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         return result;
     }
 
-    public double getGradient(Point point, Set<FieldEmitter> excludedEmitters) {
+    public synchronized double getGradient(Point point, Set<FieldEmitter> excludedEmitters) {
         double influence = 0D;
         for (FieldEmitter emitter : emitters) {
             if (excludedEmitters.contains(emitter)) {
@@ -44,7 +44,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
             }
 
             DistanceMap distanceMap = getDistanceMap(emitter.getPosition().get());
-            double emitterInfluence = distanceMap.getMaxDistance() - distanceMap.getDistance(point);
+            double emitterInfluence = 1 - distanceMap.getDistance(point) / distanceMap.getMaxDistance();
             if (emitterInfluence < 0D) {
                 emitterInfluence = 0D;
             }
@@ -75,14 +75,14 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     }
 
     @Override
-    public boolean register(FieldEmitter element) {
+    public synchronized boolean register(FieldEmitter element) {
         emitters.add(element);
         element.setGradientModel(this);
         return true;
     }
 
     @Override
-    public boolean unregister(FieldEmitter element) {
+    public synchronized boolean unregister(FieldEmitter element) {
         element.setGradientModel(null);
         emitters.remove(element);
         return true;
