@@ -13,12 +13,7 @@ public class DistanceMap {
     public DistanceMap(Map<Point, Double> map, Point origin) {
         this.map = map;
         this.origin = origin;
-        this.maxDistance = 0F;
-        for (double distance : map.values()) {
-            if (distance > this.maxDistance) {
-                this.maxDistance = distance;
-            }
-        }
+        this.maxDistance = map.values().stream().max(Double::compare).get();
     }
 
     public double getMaxDistance() {
@@ -30,6 +25,10 @@ public class DistanceMap {
             return map.get(point);
         }
         return 0D;
+    }
+
+    public Point getOrigin() {
+        return origin;
     }
 
 }
