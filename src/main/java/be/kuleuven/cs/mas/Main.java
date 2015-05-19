@@ -4,6 +4,7 @@ import be.kuleuven.cs.mas.agent.AgentFactory;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
+import be.kuleuven.cs.mas.render.GradientGraphRoadModelRenderer;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
@@ -25,7 +26,7 @@ public class Main {
 
     private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
 
-    private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
+    private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
 
     private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
@@ -71,13 +72,14 @@ public class Main {
 
     public void run() {
         View.create(sim)
-                .with(GraphRoadModelRenderer.builder()
+                .with(GradientGraphRoadModelRenderer.builder()
                                 .setMargin((int) GraphUtils.VEHICLE_LENGTH)
                                 .showNodes()
+                                .showNodeCoordinates()
                                 .showDirectionArrows()
                 )
                 .with(RoadUserRenderer.builder()
-                                .addImageAssociation(TimeAwareParcel.class, "/graphics/perspective/deliverypackage3.png"))
+                        .addImageAssociation(TimeAwareParcel.class, "/graphics/perspective/deliverypackage3.png"))
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
