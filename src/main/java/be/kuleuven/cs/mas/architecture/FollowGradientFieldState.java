@@ -99,7 +99,7 @@ public class FollowGradientFieldState extends AgentState {
 //		}
 		if (this.getNextSelectedPoint().isPresent() && ! occupied.contains(this.getNextSelectedPoint())) {
 			this.getAgent().getRoadModel().moveTo(this.getAgent(), this.getNextSelectedPoint().get(), timeLapse);
-			if (this.getAgent().getPosition().get().equals(this.getNextSelectedPoint())) {
+			if (this.getAgent().getMostRecentPosition().equals(this.getNextSelectedPoint())) {
 				this.setNextSelectedPoint(Optional.absent());
 			}
 		}
@@ -112,7 +112,7 @@ public class FollowGradientFieldState extends AgentState {
 		if (!target.isPresent()) {
 			if (this.getRequester().isPresent() && ! this.getNextRequestedPoint().isPresent()
 					&& ! this.getPotentialRequestedPoint().isPresent()) {
-				Set<Point> excludeSet = new HashSet<Point>(this.getForbiddenPoints().values());
+				Set<Point> excludeSet = new HashSet<>(this.getForbiddenPoints().values());
 				excludeSet.addAll(Arrays.asList(forbidden));
 				this.setPotentialRequestedPoint(Optional.of(this.getAgent().getRandomNeighbourPoint(excludeSet).get()));
 				this.setNumWaitingForConfirm(this.getForbiddenPoints().keySet().size());
