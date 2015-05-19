@@ -39,11 +39,11 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     public synchronized double getGradient(Point point, Set<FieldEmitter> excludedEmitters) {
         double influence = 0D;
         for (FieldEmitter emitter : emitters) {
-            if (excludedEmitters.contains(emitter)) {
+            if (!emitter.getLastPosition().isPresent() || excludedEmitters.contains(emitter)) {
                 continue;
             }
 
-            DistanceMap distanceMap = getDistanceMap(emitter.getPosition().get());
+            DistanceMap distanceMap = getDistanceMap(emitter.getLastPosition().get());
             double emitterInfluence = 1 - distanceMap.getDistance(point) / distanceMap.getMaxDistance();
             if (emitterInfluence < 0D) {
                 emitterInfluence = 0D;

@@ -104,6 +104,11 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		return position;
 	}
 
+	@Override
+	public Optional<Point> getLastPosition() {
+		return getPosition();
+	}
+
 	/**
 	 * To be called when the parcel is picked up by an {@link AGVAgent}.
 	 */

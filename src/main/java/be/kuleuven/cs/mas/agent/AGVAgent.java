@@ -121,8 +121,17 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
         }
         return Optional.of(this.roadModel.get().getPosition(this));
     }
-    
-    public Point getMostRecentPosition() {
+
+	@Override
+	public Optional<Point> getLastPosition() {
+		if (getMostRecentPosition() == null) {
+			return Optional.absent();
+		} else {
+			return Optional.of(getMostRecentPosition());
+		}
+	}
+
+	public Point getMostRecentPosition() {
     	return this.mostRecentPosition;
     }
     

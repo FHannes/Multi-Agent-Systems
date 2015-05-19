@@ -27,4 +27,9 @@ public interface FieldEmitter {
      */
     Optional<Point> getPosition();
 
+    /**
+     * Returns the last known graph position of the emitter.
+     */
+    Optional<Point> getLastPosition();
+
 }
