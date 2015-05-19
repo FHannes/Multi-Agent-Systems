@@ -29,8 +29,7 @@ public abstract class CarryingParcelState extends AgentState {
 
 	@Override
 	public double getFieldStrength() {
-		// TODO: Assign field strength when carrying a parcel
-		return 0;
+		return getAgent().getFieldStrategy().calculateFieldStrength(getAgent().getParcel().get().getElapsedTime());
 	}
 
 	protected boolean trafficPriorityFunction(String requesterName, long parcelWaitTime)

@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.vision;
 
-import be.kuleuven.cs.mas.modifiedclasses.CollisionGraphRoadModel;
+import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
 import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;

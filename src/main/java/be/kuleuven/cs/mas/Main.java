@@ -1,12 +1,14 @@
 package be.kuleuven.cs.mas;
 
-import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.agent.AgentFactory;
+import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTimeStrategy;
 import com.github.rinde.rinsim.core.Simulator;
+import com.github.rinde.rinsim.core.model.pdp.*;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
+import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.GraphRoadModelRenderer;
@@ -17,27 +19,40 @@ import java.util.Random;
 
 public class Main {
 
-    private RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
+    private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
 
-    private FieldStrategy agentFieldStrategy = new FieldTimeStrategy(1000);
-    private AgentFactory agentFactory = new AgentFactory(rng, agentFieldStrategy, GraphUtils.VISUAL_RANGE,
-            GraphUtils.getSpawnSites());
+    private final FieldStrategy agentFieldStrategy = new FieldTimeStrategy(1000);
+    private final AgentFactory agentFactory;
 
-    private FieldStrategy parcelFieldStrategy = new FieldTimeStrategy(1000);
-    private ParcelFactory parcelFactory = new ParcelFactory(rng, parcelFieldStrategy, GraphUtils.getShelfSites(),
-            GraphUtils.getDropOffSites());
+    private final FieldStrategy parcelFieldStrategy = new FieldTimeStrategy(1000);
+    private final ParcelFactory parcelFactory;
 
-    public static void main(String[] args) {
-        final Simulator sim = Simulator.builder()
-                .addModel(CollisionGraphRoadModel.builder(GraphUtils.createGraph())
-                        .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
-                        .build())
+    private final RoadModel roadModel;
+
+    private final Simulator sim;
+
+    public Main() {
+        roadModel = CollisionGraphRoadModel.builder(GraphUtils.createGraph())
+                .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
                 .build();
 
-        for (int i = 0; i < 20; i++) {
-            sim.register(new AGVAgent(sim.getRandomGenerator(), GraphUtils.VISUAL_RANGE));
-        }
+        agentFactory = new AgentFactory(rng, agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
+                GraphUtils.getSpawnSites());
+        parcelFactory = new ParcelFactory(rng, parcelFieldStrategy, GraphUtils.getShelfSites(),
+                GraphUtils.getDropOffSites());
 
+        sim = Simulator.builder()
+                .addModel(DefaultPDPModel.create())
+                .addModel(roadModel)
+                .addModel(new GradientModel())
+                .build();
+    }
+
+    public void populate() {
+        sim.register(agentFactory.makeAgent());
+    }
+
+    public void run() {
         View.create(sim)
                 .with(GraphRoadModelRenderer.builder()
                                 .setMargin((int) GraphUtils.VEHICLE_LENGTH)
@@ -48,6 +63,12 @@ public class Main {
                                 .useDifferentColorsForVehicles()
                 )
                 .show();
+    }
+
+    public static void main(String[] args) {
+        Main main = new Main();
+        main.populate();
+        main.run();
     }
 
 }

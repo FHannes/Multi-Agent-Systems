@@ -17,7 +17,7 @@ public class FieldTimeStrategy extends FieldStrategy {
 
     @Override
     public double calculateFieldStrength(long elapsed) {
-        return elapsed / (double) timeUnit;
+        return 1.0D + elapsed / (double) timeUnit;
     }
 
 }

@@ -4,6 +4,7 @@ import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.gradientfield.FieldEmitter;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
+import com.github.rinde.rinsim.core.TickListener;
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel;
 import com.github.rinde.rinsim.core.model.pdp.Parcel;
@@ -12,11 +13,12 @@ import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.util.TimeWindow;
 import com.google.common.base.Optional;
 
-public class TimeAwareParcel extends Parcel implements FieldEmitter {
+public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListener {
 
 	private FieldStrategy fieldStrategy;
 
 	private long waitingSince;
+	private long currentTime;
 	private Optional<RoadModel> roadModel;
 	private Optional<PDPModel> pdpModel;
 	private boolean delivered = false;
@@ -30,6 +32,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 		this.fieldStrategy = fieldStrategy;
 		setPosition(startPosition);
 		this.waitingSince = currentTime;
+		this.currentTime = currentTime;
 	}
 
 	@Override
@@ -75,7 +78,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	 * @return The elapsed time in milliseconds.
 	 */
 	public long getElapsedTime() {
-		return System.currentTimeMillis() - getWaitingSince();
+		return currentTime - getWaitingSince();
 	}
 
 	protected void setPosition(Point position) {
@@ -90,7 +93,11 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 
 	@Override
 	public double getStrength() {
-		return -fieldStrategy.calculateFieldStrength(getElapsedTime());
+		if (getPosition().isPresent()) {
+			return -fieldStrategy.calculateFieldStrength(getElapsedTime());
+		} else {
+			return 0D;
+		}
 	}
 
 	@Override
@@ -104,6 +111,15 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter {
 	public void notifyPickup() {
 		position = Optional.absent();
 		gradientModel.unregister(this);
+	}
+
+	@Override
+	public void tick(TimeLapse timeLapse) {
+	}
+
+	@Override
+	public void afterTick(TimeLapse timeLapse) {
+		currentTime = timeLapse.getEndTime();
 	}
 
 }

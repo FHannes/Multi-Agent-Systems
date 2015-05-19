@@ -248,8 +248,7 @@ public class FollowGradientFieldState extends AgentState {
 
 	@Override
 	public double getFieldStrength() {
-		// No repulsion field emitted when the agent is not carrying a parcel
-		return 0;
+		return getAgent().getFieldStrategy().calculateFieldStrength(0);
 	}
 
 	private Multimap<String, Point> getForbiddenPoints() {
