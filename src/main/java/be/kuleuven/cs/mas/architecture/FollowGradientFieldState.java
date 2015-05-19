@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.Set;
 
@@ -24,11 +26,12 @@ public class FollowGradientFieldState extends AgentState {
 	private Multimap<String, Point> forbiddenPoints = LinkedHashMultimap.create();
 	private Optional<String> requester;
 	private Optional<Point> nextRequestedPoint;
+	private Optional<Point> potentialRequestedPoint;
 	private Optional<Point> nextSelectedPoint;
-	private Optional<List<String>> waitForList;
-	private boolean hasMoved = false;
+	private Map<String,List<String>> waitForMap = new HashMap<>();
 	private long timeStamp = 0;
 	private long parcelWaitingSince = 0;
+	private int numWaitingForConfirm = 0;
 	private int step = 0;
 
 	public FollowGradientFieldState(AGVAgent agent) {
@@ -61,12 +64,12 @@ public class FollowGradientFieldState extends AgentState {
 			TimeAwareParcel parcel = (TimeAwareParcel) parcels.stream().findFirst().get();
 			parcel.notifyPickup();
 			// expand backlogs
+			List<ReleaseBacklog> backlogs = this.getBackLogs();
 			if (this.getRequester().isPresent()) {
-				List<ReleaseBacklog> backlogs = this.getBackLogs();
 				List<String> toPropagateFor = new ArrayList<String>(this.getForbiddenPoints().keySet());
 				backlogs.add(new ReleaseBacklog(this.getRequester().get(), this.getTimeStamp(), toPropagateFor));
 			}
-			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), this.getBackLogs(), parcel)));
+			doStateTransition(Optional.of(new CarryingParcelNoJamState(getAgent(), backlogs, parcel)));
 			return;
 		}
 
@@ -84,23 +87,19 @@ public class FollowGradientFieldState extends AgentState {
 				&& ! this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint())
 				&& ! occupied.contains(this.getNextSelectedPoint().get())
 				&& ! this.getForbiddenPoints().values().contains(this.getNextSelectedPoint())) {
+			// agent has committed to different point than requested, so release any agents waiting on this one
 			this.sendRelease(this.getRequester().get(), this.getTimeStamp());
 			this.setNextRequestedPoint(Optional.absent());
-			this.setHasMoved(true);
 		}
-		if (this.getNextSelectedPoint().isPresent()
-				&& this.getNextRequestedPoint().isPresent()
-				&& this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint().get())
-				&& occupied.contains(this.getNextSelectedPoint().get())) {
-			this.followGradientFieldTryRequested(occupied);
-		}
+//		if (this.getNextSelectedPoint().isPresent()
+//				&& this.getNextRequestedPoint().isPresent()
+//				&& this.getNextSelectedPoint().get().equals(this.getNextRequestedPoint().get())
+//				&& occupied.contains(this.getNextSelectedPoint().get())) {
+//			this.followGradientFieldTryRequested(occupied);
+//		}
 		if (this.getNextSelectedPoint().isPresent() && ! occupied.contains(this.getNextSelectedPoint())) {
 			this.getAgent().getRoadModel().moveTo(this.getAgent(), this.getNextSelectedPoint().get(), timeLapse);
 			if (this.getAgent().getPosition().get().equals(this.getNextSelectedPoint())) {
-				if (this.getNextRequestedPoint().isPresent() &&
-						this.getAgent().getPosition().get().equals(this.getNextRequestedPoint().get())) {
-					this.setHasMoved(true);
-				}
 				this.setNextSelectedPoint(Optional.absent());
 			}
 		}
@@ -112,32 +111,33 @@ public class FollowGradientFieldState extends AgentState {
 				!occupied.contains(t)).findFirst();
 		if (!target.isPresent()) {
 			if (this.getRequester().isPresent() && ! this.getNextRequestedPoint().isPresent()
-					&& !this.hasMoved()) {
+					&& ! this.getPotentialRequestedPoint().isPresent()) {
 				Set<Point> excludeSet = new HashSet<Point>(this.getForbiddenPoints().values());
 				excludeSet.addAll(Arrays.asList(forbidden));
-				this.setNextRequestedPoint((this.getAgent().getRandomNeighbourPoint(excludeSet)));
-				this.sendMoveAside(this.getRequester().get(), this.getWaitForList().get(), this.getTimeStamp(),
-						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
+				this.setPotentialRequestedPoint(Optional.of(this.getAgent().getRandomNeighbourPoint(excludeSet).get()));
+				this.setNumWaitingForConfirm(this.getForbiddenPoints().keySet().size());
+				for (String propagator : this.getForbiddenPoints().keySet()) {
+					this.sendPleaseConfirm(this.getRequester().get(), propagator, this.getTimeStamp(), this.getAgent().getMostRecentPosition());
+				}
 			}
 		} else {
 			this.setNextSelectedPoint(Optional.of(target.get()));
 		}
 	}
 	
-	private void followGradientFieldTryRequested(Set<Point> occupied) {
-		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
-		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
-				!occupied.contains(t)).findFirst();
-		if (!target.isPresent()) {
-			if (this.getRequester().isPresent() && this.getNextRequestedPoint().isPresent()
-					&& !this.hasMoved()) {
-				this.sendMoveAside(this.getRequester().get(), this.getWaitForList().get(), this.getTimeStamp(),
-						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
-			}
-		} else {
-			this.setNextSelectedPoint(Optional.of(target.get()));
-		}
-	}
+//	private void followGradientFieldTryRequested(Set<Point> occupied) {
+//		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
+//		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
+//				!occupied.contains(t)).findFirst();
+//		if (!target.isPresent()) {
+//			if (this.getRequester().isPresent() && this.getNextRequestedPoint().isPresent()) {
+//				this.sendMoveAside(this.getRequester().get(), this.getWaitForList().get(), this.getTimeStamp(),
+//						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
+//			}
+//		} else {
+//			this.setNextSelectedPoint(Optional.of(target.get()));
+//		}
+//	}
 
 	protected void processMoveAsideMessage(MoveAsideMessage msg) {
 		boolean handleDeadlock = false;
@@ -171,7 +171,7 @@ public class FollowGradientFieldState extends AgentState {
 		} else if ((this.getRequester().isPresent() && this.getRequester().get().equals(msg.getRequester()) &&  msg.getStep() > this.getStep()) ||
 				! this.getRequester().isPresent() || ! this.getRequester().get().equals(msg.getRequester())) {
 			this.getForbiddenPoints().clear();
-			this.setHasMoved(false);
+			this.getWaitForMap().clear();
 		}
 		if (! this.getRequester().isPresent() || ! this.getRequester().get().equals(msg.getRequester())) {
 			if (this.getRequester().isPresent() && ! this.getRequester().get().equals(msg.getRequester())) {
@@ -179,11 +179,10 @@ public class FollowGradientFieldState extends AgentState {
 			}
 			this.setRequester(Optional.of(msg.getRequester()));
 			this.setParcelWaitingSince(msg.getParcelWaitingSince());
-			this.setHasMoved(false);
 		}
 
 		this.setStep(msg.getStep());
-		this.setWaitForList(Optional.of(msg.getWaitForList()));
+		this.getWaitForMap().put(msg.getPropagator(), msg.getWaitForList());
 		this.getForbiddenPoints().put(msg.getPropagator(), msg.getAtPos());
 		this.getForbiddenPoints().put(msg.getPropagator(), msg.getWantPos());
 		this.sendAck(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
@@ -208,7 +207,7 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		this.setRequester(Optional.absent());
 		this.getForbiddenPoints().clear();
-		this.setWaitForList(Optional.absent());
+		this.getWaitForMap().clear();
 		this.setParcelWaitingSince(0);
 		this.setStep(0);
 		this.setTimeStamp(0);
@@ -224,11 +223,15 @@ public class FollowGradientFieldState extends AgentState {
 		}
 		this.sendRelease(this.getRequester().get(), this.getTimeStamp()); // release all agents this agent (indirectly) caused to activate "get out of the way"
 		this.getForbiddenPoints().removeAll(msg.getPropagator());
-		this.setRequester(Optional.absent());
-		this.setParcelWaitingSince(0);
-		this.setStep(0);
-		this.setTimeStamp(0);
-		this.setWaitForList(Optional.absent());
+		if (this.getForbiddenPoints().isEmpty()) {
+			this.setNextRequestedPoint(Optional.absent());
+			this.setPotentialRequestedPoint(Optional.absent());
+			this.setRequester(Optional.absent());
+			this.setParcelWaitingSince(0);
+			this.setStep(0);
+			this.setTimeStamp(0);
+			this.getWaitForMap().clear();
+		}
 	}
 
 	@Override
@@ -277,6 +280,14 @@ public class FollowGradientFieldState extends AgentState {
 		this.parcelWaitingSince = parcelWaitingSince;
 	}
 
+	private int getNumWaitingForConfirm() {
+		return numWaitingForConfirm;
+	}
+
+	private void setNumWaitingForConfirm(int numWaitingForConfirm) {
+		this.numWaitingForConfirm = numWaitingForConfirm;
+	}
+
 	private int getStep() {
 		return this.step;
 	}
@@ -293,6 +304,14 @@ public class FollowGradientFieldState extends AgentState {
 		this.nextRequestedPoint = point;
 	}
 
+	private Optional<Point> getPotentialRequestedPoint() {
+		return potentialRequestedPoint;
+	}
+
+	private void setPotentialRequestedPoint(Optional<Point> potentialRequestedPoint) {
+		this.potentialRequestedPoint = potentialRequestedPoint;
+	}
+
 	private Optional<Point> getNextSelectedPoint() {
 		return nextSelectedPoint;
 	}
@@ -301,34 +320,68 @@ public class FollowGradientFieldState extends AgentState {
 		this.nextSelectedPoint = nextSelectedPoint;
 	}
 
-	private Optional<List<String>> getWaitForList() {
-		return this.waitForList;
+	private Map<String,List<String>> getWaitForMap() {
+		return this.waitForMap;
 	}
 
-	private List<String> getWaitForListWithSelf() throws IllegalStateException {
-		if (! this.getWaitForList().isPresent()) {
-			throw new IllegalStateException("should only be called if there is a wait-for list");
+	private List<String> getWaitForListWithSelf(String propagator) throws IllegalStateException {
+		if (! this.getWaitForMap().containsKey(propagator)) {
+			throw new IllegalStateException("should only be called if there is a key for the propagator");
 		}
-		List<String> toReturn = new LinkedList<>(this.getWaitForList().get());
+		List<String> toReturn = new LinkedList<>(this.getWaitForMap().get(propagator));
 		toReturn.add(this.getAgent().getName());
 		return toReturn;
 	}
 
-	private void setWaitForList(Optional<List<String>> waitForList) {
-		this.waitForList = waitForList;
+	private void setWaitForMap(Map<String,List<String>> waitForMap) {
+		this.waitForMap = waitForMap;
 	}
-
-	private boolean hasMoved() {
-		return hasMoved;
-	}
-
-	private void setHasMoved(boolean hasMoved) {
-		this.hasMoved = hasMoved;
-	}
-
+	
 	@Override
 	protected void processAckMessage(AckMessage msg) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void processDoConfirmMessage(DoConfirmMessage msg) {
+		if (this.getPotentialRequestedPoint().isPresent() && this.getRequester().isPresent()) {
+			if (msg.getRequester().equals(this.getRequester()) && this.getForbiddenPoints().keySet().contains(msg.getPropagator())
+					&& this.getTimeStamp() >= msg.getTimeStamp() && this.getAgent().getMostRecentPosition().equals(msg.getWantPos())) {
+				this.setNextRequestedPoint(this.getPotentialRequestedPoint());
+				this.setPotentialRequestedPoint(Optional.absent());
+				this.setNumWaitingForConfirm(0);
+				this.sendMoveAside(this.getRequester().get(), this.getWaitForListWithSelf(msg.getPropagator()), this.getTimeStamp(),
+						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
+			}
+		}
+	}
+
+	@Override
+	protected void processNotConfirmMessage(NotConfirmMessage msg) {
+		if (this.getNumWaitingForConfirm() > 0) {
+			if (msg.getRequester().equals(this.getRequester().get()) &&
+					this.getForbiddenPoints().keySet().contains(msg.getPropagator())
+					&& this.getTimeStamp() >= msg.getTimeStamp()
+					&& this.getAgent().getMostRecentPosition().equals(msg.getWantPos())) {
+				this.setNumWaitingForConfirm(this.getNumWaitingForConfirm() - 1);
+				this.getForbiddenPoints().removeAll(msg.getPropagator());
+				if (this.getNumWaitingForConfirm() == 0) {
+					this.setRequester(Optional.absent());
+					this.setNextRequestedPoint(Optional.absent());
+					this.setPotentialRequestedPoint(Optional.absent());
+					this.getForbiddenPoints().clear();
+					this.getWaitForMap().clear();
+					this.setParcelWaitingSince(0);
+					this.setTimeStamp(0);
+				}
+			}
+		}
 	}
 }

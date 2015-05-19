@@ -136,10 +136,10 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 				}
 				this.doMoveAside(msg.getAtPos());
 				this.setPropagator(msg.getPropagator());
-				this.setWaitForList(msg.getWaitForList());
 				this.setStep(msg.getStep());
-				return;
 			}
+			this.setWaitForList(msg.getWaitForList());
+			return;
 		}
 		if (this.trafficPriorityFunction(this.getRequester(), msg.getParcelWaitingSince())) {
 			this.sendReject(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
@@ -310,5 +310,29 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		List<String> toReturn = new LinkedList<>(this.getWaitForList());
 		toReturn.add(this.getAgent().getName());
 		return toReturn;
+	}
+
+	@Override
+	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
+		if (msg.getRequester().equals(this.getRequester())
+				&& msg.getPropagator().equals(this.getAgent().getName())) {
+			if (this.getTimeStamp() >= msg.getTimeStamp() && this.getNextWantedPoint().equals(msg.getWantPos())) {
+				this.sendDoConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			} else {
+				this.sendNotConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			}
+		}
+	}
+
+	@Override
+	protected void processDoConfirmMessage(DoConfirmMessage msg) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void processNotConfirmMessage(NotConfirmMessage msg) {
+		// TODO Auto-generated method stub
+		
 	}
 }

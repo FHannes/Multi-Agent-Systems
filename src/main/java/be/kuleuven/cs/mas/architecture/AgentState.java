@@ -78,6 +78,16 @@ public abstract class AgentState {
 			this.processAckMessage(ackMessage.get());
 		}
 		break;
+		case "please-confirm": Optional<PleaseConfirmMessage> pleaseConfirmMessage = parsePleaseConfirmMessage(contents);
+		if (pleaseConfirmMessage.isPresent()) {
+			this.processPleaseConfirmMessage(pleaseConfirmMessage.get());
+		}
+		break;
+		case "do-confirm": Optional<DoConfirmMessage> doConfirmMessage = parseDoConfirmMessage(contents);
+		if (doConfirmMessage.isPresent()) {
+			this.processDoConfirmMessage(doConfirmMessage.get());
+		}
+		break;
 		default: return;
 		}
 	}
@@ -243,6 +253,102 @@ public abstract class AgentState {
 	}
 	
 	protected abstract void processAckMessage(AckMessage msg);
+	
+	protected static Optional<PleaseConfirmMessage> parsePleaseConfirmMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("want-pos")) {
+			return Optional.absent();
+		}
+		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		return Optional.of(new PleaseConfirmMessage(requester, propagator, timeStamp, wantPos));
+	}
+	
+	protected abstract void processPleaseConfirmMessage(PleaseConfirmMessage msg);
+	
+	protected void sendPleaseConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("please-confirm")
+				.addField("requester", requester)
+				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
+				.addField("want-pos", wantPos.toString())
+				.build());
+	}
+	
+	protected static Optional<DoConfirmMessage> parseDoConfirmMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("want-pos")) {
+			return Optional.absent();
+		}
+		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		return Optional.of(new DoConfirmMessage(requester, propagator, timeStamp, wantPos));
+	}
+	
+	protected abstract void processDoConfirmMessage(DoConfirmMessage msg);
+	
+	protected void sendDoConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("please-confirm")
+				.addField("requester", requester)
+				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
+				.addField("want-pos", wantPos.toString())
+				.build());
+	}
+	
+	protected static Optional<NotConfirmMessage> parseNotConfirmMessage(List<Field> contents) {
+		int i = 1;
+		if (! contents.get(i).getName().equals("requester")) {
+			return Optional.absent();
+		}
+		String requester = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("propagator")) {
+			return Optional.absent();
+		}
+		String propagator = contents.get(i++).getValue();
+		if (! contents.get(i).getName().equals("timestamp")) {
+			return Optional.absent();
+		}
+		long timeStamp = Long.parseLong(contents.get(i++).getValue());
+		if (! contents.get(i).getName().equals("want-pos")) {
+			return Optional.absent();
+		}
+		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		return Optional.of(new NotConfirmMessage(requester, propagator, timeStamp, wantPos));
+	}
+	
+	protected abstract void processNotConfirmMessage(NotConfirmMessage msg);
+	
+	protected void sendNotConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("not-confirm")
+				.addField("requester", requester)
+				.addField("propagator", propagator)
+				.addField("timestamp", Long.toString(timeStamp))
+				.addField("want-pos", wantPos.toString())
+				.build());
+	}
 	
 	protected AGVAgent getAgent() {
 		return this.agent;

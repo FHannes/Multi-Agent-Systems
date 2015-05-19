@@ -214,4 +214,29 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
+		if (msg.getRequester().equals(this.getAgent().getName())
+				&& msg.getRequester().equals(this.getAgent().getName())
+				&& msg.getTimeStamp() >= this.getTimeStamp()) {
+			if (this.getNextWantedPoint().equals(msg.getWantPos())) {
+			this.sendDoConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			} else {
+				this.sendNotConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			}
+		}
+	}
+
+	@Override
+	protected void processDoConfirmMessage(DoConfirmMessage msg) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void processNotConfirmMessage(NotConfirmMessage msg) {
+		// TODO Auto-generated method stub
+		
+	}
 }
