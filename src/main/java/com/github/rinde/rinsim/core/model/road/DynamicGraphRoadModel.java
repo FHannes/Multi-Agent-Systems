@@ -15,6 +15,8 @@
  */
 package com.github.rinde.rinsim.core.model.road;
 
+import be.kuleuven.cs.mas.vision.Direction;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.road.GraphRoadModel;
 import com.github.rinde.rinsim.core.model.road.MoveProgress;
@@ -33,6 +35,7 @@ import javax.measure.quantity.Velocity;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 import javax.measure.unit.Unit;
+
 import java.util.Queue;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -163,6 +166,19 @@ public class DynamicGraphRoadModel extends GraphRoadModel {
         "There is no connection between %s and %s.", from, to);
     return connMap.containsKey(graph.getConnection(from, to))
         || posMap.containsKey(from) || posMap.containsKey(to);
+  }
+  
+  public boolean isObstructedOn(RoadUser roadUser, Connection connection) {
+	  Direction obstructionDirection = Direction.determineDirectionOf(this.getPosition(roadUser), connection.to());
+	  for (RoadUser ele : connMap.get(connection)) {
+		  if (ele.equals(roadUser)) {
+			  continue;
+		  }
+		  if (obstructionDirection.equals(Direction.determineDirectionOf(this.getPosition(roadUser), this.getPosition(ele)))) {
+			  return true;
+		  }
+	  }
+	  return false;
   }
 
   @Override

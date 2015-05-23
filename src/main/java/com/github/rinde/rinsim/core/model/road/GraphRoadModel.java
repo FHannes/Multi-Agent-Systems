@@ -34,6 +34,8 @@ import javax.measure.unit.Unit;
 
 import org.apache.commons.math3.random.RandomGenerator;
 
+import be.kuleuven.cs.mas.vision.Direction;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.road.GraphRoadModel.Loc;
 import com.github.rinde.rinsim.geom.Connection;
@@ -215,19 +217,33 @@ public class GraphRoadModel extends AbstractRoadModel<Loc> {
     // the end of the current edge then its ok. Otherwise more checks are
     // required..
     if (objLoc.isOnConnection() && !nextHop.equals(objLoc.conn.get().to())) {
+    	if (nextHop instanceof Loc) {
+    		final Loc dest = (Loc) nextHop;
+    		checkArgument(
+    		        objLoc.isOnSameEdge(dest),
+    		        "Illegal path for this object, first point is not on the same edge as the object.");
+    	}
+    	else {
+    		checkArgument(
+    				this.isOnConnection(objLoc.conn.get().from(), objLoc.conn.get().to(), nextHop),
+    				"Illegal path for this object, next point is not on the same edge as current point");
+    	}
       // check if next destination is a MidPoint
-      checkArgument(
-        nextHop instanceof Loc,
-        "Illegal path for this object, from a position on an edge we can not jump to another edge or go back. From %s, to %s.",
-        objLoc, nextHop);
-      final Loc dest = (Loc) nextHop;
+//      checkArgument(
+//        nextHop instanceof Loc,
+//        "Illegal path for this object, from a position on an edge we can not jump to another edge or go back. From %s, to %s.",
+//        objLoc, nextHop);
+//      final Loc dest = (Loc) nextHop;
       // check for same edge
-      checkArgument(
-        objLoc.isOnSameConnection(dest),
-        "Illegal path for this object, first point is not on the same edge as the object.");
+//      checkArgument(
+//        objLoc.isOnSameConnection(dest),
+//        "Illegal path for this object, first point is not on the same edge as the object.");
+//      checkArgument(
+//    	        objLoc.isOnSameEdge(dest),
+//    	        "Illegal path for this object, first point is not on the same edge as the object.");
       // check for relative position
-      checkArgument(objLoc.relativePos <= dest.relativePos,
-        "Illegal path for this object, can not move backward over an edge.");
+//      checkArgument(objLoc.relativePos <= dest.relativePos,
+//        "Illegal path for this object, can not move backward over an edge.");
     }
     // in case we start from a node and we are not going to another node
     else if (!objLoc.isOnConnection() && !nextHop.equals(objLoc)
@@ -276,6 +292,23 @@ public class GraphRoadModel extends AbstractRoadModel<Loc> {
    */
   protected static boolean isOnConnection(Point p) {
     return p instanceof Loc && ((Loc) p).isOnConnection();
+  }
+  
+  protected boolean isOnConnection(Point from, Point to, Point p) {
+	  if (! this.getGraph().hasConnection(from, to)) {
+		  return false;
+	  }
+	  
+	  Direction fromTo = Direction.determineDirectionOf(from, to);
+	  Direction toFrom = Direction.determineDirectionOf(to, from);
+	  Direction fromP = Direction.determineDirectionOf(from, p);
+	  Direction toP = Direction.determineDirectionOf(to, p);
+	  
+	  return fromP.equals(fromTo) && toP.equals(toFrom);
+  }
+  
+  protected boolean isOnConnection(Connection<? extends ConnectionData> conn, Point p) {
+	  return this.isOnConnection(conn.from(), conn.to(), p);
   }
 
   /**
@@ -514,6 +547,19 @@ public class GraphRoadModel extends AbstractRoadModel<Loc> {
      */
     public boolean isOnSameConnection(Loc l) {
       return conn.equals(l.conn);
+    }
+    
+    public boolean isOnSameEdge(Loc l) {
+    	if (! this.isOnConnection() || ! l.isOnConnection()) {
+    		return false;
+    	}
+    	if (! conn.equals(l.conn)) {
+    		boolean toReturn = conn.get().from().equals(l.conn.get().to())
+    				&& conn.get().to().equals(l.conn.get().from());
+    		return toReturn;
+    	} else {
+    		return true;
+    	}
     }
   }
 }

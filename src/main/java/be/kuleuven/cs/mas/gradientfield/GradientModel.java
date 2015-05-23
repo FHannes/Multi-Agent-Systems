@@ -43,7 +43,21 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
                 continue;
             }
 
-            DistanceMap distanceMap = getDistanceMap(emitter.getPosition().get());
+            Point toMap = emitter.getPosition().get();
+            
+            if (! graph.containsNode(toMap)) {
+            	double distance = Double.POSITIVE_INFINITY;
+            	Point potPoint = null;
+            	for (Point graphPoint : graph.getNodes()) {
+            		if (Point.distance(point, graphPoint) < distance) {
+            			potPoint = graphPoint;
+            			distance = Point.distance(point, graphPoint);
+            		}
+            	}
+            	toMap = potPoint;
+            }
+            
+            DistanceMap distanceMap = getDistanceMap(toMap);
             double emitterInfluence = 1 - distanceMap.getDistance(point) / distanceMap.getMaxDistance();
             if (emitterInfluence < 0D) {
                 emitterInfluence = 0D;

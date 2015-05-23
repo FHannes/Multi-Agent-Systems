@@ -19,6 +19,9 @@ public class DistanceMap {
                 this.maxDistance = distance;
             }
         }
+        if (this.maxDistance == 0) {
+        	System.out.println("max is zero");
+        }
     }
 
     public double getMaxDistance() {

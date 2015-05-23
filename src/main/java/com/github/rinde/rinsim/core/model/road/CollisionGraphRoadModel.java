@@ -15,6 +15,8 @@
  */
 package com.github.rinde.rinsim.core.model.road;
 
+import be.kuleuven.cs.mas.vision.Direction;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.event.Event;
 import com.github.rinde.rinsim.event.Listener;
@@ -34,6 +36,7 @@ import javax.measure.quantity.Velocity;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 import javax.measure.unit.Unit;
+
 import java.util.Collection;
 import java.util.Queue;
 
@@ -297,13 +300,18 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
 	}
 	
-	public boolean isOnConnectionTo(RoadUser roadUser, Point to) {
-		for (Point from : graph.getIncomingConnections(to)) {
-			if (connMap.get(graph.getConnection(from, to)).contains(roadUser)) {
-				return true;
-			}
+	/**
+	 * True if roadUser is between reference and to
+	 */
+	public boolean occupiesPointWithRespectTo(RoadUser roadUser, Point to, Point reference) {
+		if (! this.isOnConnection(this.getConnection(roadUser).get(), to)) {
+			return false;
 		}
-		return false;
+		
+		Direction posTo = Direction.determineDirectionOf(this.getPosition(roadUser), to);
+		Direction posRef = Direction.determineDirectionOf(this.getPosition(roadUser), reference);
+		
+		return ! posTo.equals(posRef);
 	}
 
 	private boolean connKeyHasMovingRoadUser(Connection<?> key, RoadUser ignore) {

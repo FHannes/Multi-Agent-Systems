@@ -10,6 +10,7 @@ import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.vision.VisualSensor;
 import be.kuleuven.cs.mas.vision.VisualSensorOwner;
+
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.core.model.comm.CommDevice;
 import com.github.rinde.rinsim.core.model.comm.CommDeviceBuilder;
@@ -22,9 +23,11 @@ import com.github.rinde.rinsim.core.model.road.MovingRoadUser;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
+
 import org.apache.commons.math3.random.RandomGenerator;
 
 import javax.annotation.Nullable;
+
 import java.util.*;
 
 public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, CommUser, VisualSensorOwner {
@@ -128,6 +131,18 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
     
     private void setMostRecentPosition(Point point) {
     	this.mostRecentPosition = point;
+    }
+    
+    public Point getClosestGraphPoint() {
+    	double distance = Double.POSITIVE_INFINITY;
+		Point toReturn = null;
+		for (Point graphPoint : this.getRoadModel().getGraph().getNodes()) {
+			if (Point.distance(this.getPosition().get(), graphPoint) < distance) {
+				toReturn = graphPoint;
+				distance = Point.distance(this.getPosition().get(), graphPoint);
+			}
+		}
+		return toReturn;
     }
     
     public void sendMessage(AgentMessage msg) throws IllegalStateException {
@@ -251,17 +266,45 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 	}
 	
 	public Optional<Point> getRandomNeighbourPoint(Collection<Point> excludeSet) {
-		Collection<Point> neighbours = this.getRoadModel().getGraph().getOutgoingConnections(this.getPosition().get());
+		Point closestPoint = this.getClosestGraphPoint();
+		if (this.getPosition().get().equals(closestPoint)) {
+			return this.getRandomNeighbourPointIsOnNode(excludeSet, closestPoint);
+		} else {
+			return this.getRandomNeighbourPointNotOnNode(excludeSet, closestPoint);
+		}
+	}
+	
+	private Optional<Point> getRandomNeighbourPointIsOnNode(Collection<Point> excludeSet, Point closestPoint) {
+		Collection<Point> neighbours = this.getRoadModel().getGraph().getOutgoingConnections(closestPoint);
 		neighbours.removeAll(excludeSet);
 		
 		if (neighbours.isEmpty()) {
 			return Optional.absent();
 		} else {
 			ArrayList<Point> asList = new ArrayList<>(neighbours);
-			return Optional.of(asList.get(this.rng.nextInt(asList.size())));
+			Point toReturn = asList.get(this.rng.nextInt(asList.size()));
+			if (! this.getRoadModel().getGraph().hasConnection(this.getClosestGraphPoint(), toReturn)) {
+				System.err.println("No connection between " + this.getClosestGraphPoint() + " and " + toReturn);
+			}
+			return Optional.of(toReturn);
 		}
 	}
 
+	private Optional<Point> getRandomNeighbourPointNotOnNode(Collection<Point> excludeSet, Point closestPoint) {
+		// TODO choose the node at the other end of the connection
+		double distance = Double.POSITIVE_INFINITY;
+		Point chooseBetween = null;
+		for (Point outgoing : this.getRoadModel().getGraph().getOutgoingConnections(closestPoint)) {
+			double posDistance = Point.distance(outgoing, this.getPosition().get());
+			if (posDistance < distance) {
+				chooseBetween = outgoing;
+				distance = posDistance;
+			}
+		}
+		List<Point> asList = Arrays.asList(closestPoint, chooseBetween);
+		return Optional.of(asList.get(this.rng.nextInt(asList.size())));
+	}
+	
 	public FieldStrategy getFieldStrategy() {
 		return fieldStrategy;
 	}
@@ -269,5 +312,8 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 	public Collection<Point> getNeighbouringPoints() {
 		return this.getRoadModel().getGraph().getOutgoingConnections(this.getPosition().get());
 	}
-
+	
+	public String toString() {
+		return this.getName();
+	}
 }

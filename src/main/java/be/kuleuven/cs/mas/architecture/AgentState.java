@@ -45,6 +45,34 @@ public abstract class AgentState {
 	 */
 	public abstract void act(TimeLapse timeLapse);
 	
+	protected void doMoveForward(Point initialPosition, TimeLapse timeLapse) {
+		try {
+			this.getAgent().followPath(timeLapse);
+		} catch (IllegalArgumentException e) {
+			if (this.getAgent().getPosition().get().equals(initialPosition)) {
+				// this method should never have been called in this case, so throw it
+				throw e;
+			} else {
+				this.handleExceptionDuringMove(timeLapse);
+			}
+		}
+	}
+	
+	protected void doMoveForward(Point pathPoint, Point initialPosition, TimeLapse timeLapse) {
+		try {
+			this.getAgent().followPath(pathPoint, timeLapse);
+		} catch (IllegalArgumentException e) {
+			if (this.getAgent().getPosition().get().equals(initialPosition)) {
+				// this method should never have been called in this case, so throw it
+				throw e;
+			} else {
+				this.handleExceptionDuringMove(timeLapse);
+			}
+		}
+	}
+	
+	protected abstract void handleExceptionDuringMove(TimeLapse timeLapse);
+	
 	/**
 	 * Processes the given message in a manner appropriate to the state
 	 */
@@ -139,9 +167,16 @@ public abstract class AgentState {
 		.addField("wait-for", toWaitForString(waitFor))
 		.addField("timestamp", Long.toString(timeStamp))
 		.addField("parcel-waiting-since", Long.toString(parcelWaitingSince))
-		.addField("want-pos", wantPos.toString())
-		.addField("at-pos", this.getAgent().getMostRecentPosition().toString())
-		.addField("step", Integer.toString(step));
+		.addField("want-pos", wantPos.toString());
+		
+		if (this.getAgent().getRoadModel().getGraph().containsNode(this.getAgent().getPosition().get())) {
+			this.getAgent().getMessageBuilder().addField("at-pos", this.getAgent().getPosition().toString());
+		} else {
+			this.getAgent().getMessageBuilder().addField("at-pos", this.getAgent().getRoadModel().getConnection(this.getAgent()).get().from().toString());
+		}
+		
+		
+		this.getAgent().getMessageBuilder().addField("step", Integer.toString(step));
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
 	}
 	
@@ -198,6 +233,7 @@ public abstract class AgentState {
 	protected void sendHomeFree() {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("home-free")
 				.addField("requester", this.getAgent().getName()).build());
+		System.out.println("Home free sent!");
 	}
 	
 	protected static Optional<RejectMessage> parseRejectMessage(List<Field> contents) {

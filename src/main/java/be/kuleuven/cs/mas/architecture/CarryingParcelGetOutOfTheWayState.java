@@ -15,17 +15,21 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	private long parcelWaitTime;
 	private int step;
 	private Point nextWantedPoint;
+	private Point propagatorPos;
+	private Point propagatorWantPos;
 	private boolean waitingOnOther = false;
 	private boolean hasMoved = false;
 	private long timeOutCount = 0;
 	private long timeStamp = 0;
 	private List<String> waitForList;
 
-	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorPos) {
+	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorWantPos, Point propagatorPos) {
 		super(agent);
 		this.requester = requester;
 		this.propagator = propagator;
 		this.parcelWaitTime = parcelWaitTime;
+		this.propagatorPos = propagatorPos;
+		this.propagatorWantPos = propagatorWantPos;
 		this.step = step;
 		this.waitForList = waitForList;
 		this.timeStamp = timeStamp;
@@ -33,11 +37,13 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.doMoveAside(propagatorPos);
 	}
 	
-	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, List<ReleaseBacklog> backLogs, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorPos) {
+	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, List<ReleaseBacklog> backLogs, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorWantPos, Point propagatorPos) {
 		super(agent, backLogs);
 		this.requester = requester;
 		this.propagator = propagator;
 		this.parcelWaitTime = parcelWaitTime;
+		this.propagatorPos = propagatorPos;
+		this.propagatorWantPos = propagatorWantPos;
 		this.step = step;
 		this.waitForList = waitForList;
 		this.timeStamp = timeStamp;
@@ -47,17 +53,6 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 
 	@Override
 	public void act(TimeLapse timeLapse) {
-		// first of all, check if the parcel can be delivered
-		if (this.getAgent().getPosition().equals(this.getAgent().getParcel().get().getDestination())) {
-			this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
-			// if parcel is not in cargo anymore, delivery was successful
-			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
-				// parcel has been delivered, so follow gradient field now
-				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
-				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
-			}
-			return;
-		}
 		
 		boolean wasAlreadyWaiting = this.isWaitingOnOther();
 		if (wasAlreadyWaiting) {
@@ -72,20 +67,45 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		if (! occupiedPoints.contains(this.getNextWantedPoint())) {
 			// we can indeed move forward
 			this.getAgent().followPath(this.getNextWantedPoint(), timeLapse);
-			if (this.getAgent().getPosition().equals(this.getNextWantedPoint())) {
+			if (this.getAgent().getPosition().get().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
 				this.setWaitingOnOther(false);
-				this.setHasMoved(true);
-				return;
+				if (this.getAgent().getPosition().get().equals(this.getPropagatorWantPos())) {
+					this.doMoveAside(this.getPropagatorPos());
+				} else {
+					this.setHasMoved(true);
+				}
 			}
 		}
-
+		
+		// first of all, check if the parcel can be delivered
+		if (this.getAgent().getPosition().equals(this.getAgent().getParcel().get().getDestination())) {
+			this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
+			// if parcel is not in cargo anymore, delivery was successful
+			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
+				// parcel has been delivered, so follow gradient field now
+				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
+				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
+			}
+			return;
+		}
+		
+		if (this.hasMoved()) {
+			return;
+		}
+		
 		this.setWaitingOnOther(true);
 		if (this.timeOutOccurred() || !wasAlreadyWaiting) {
 			// resend move-aside
 			this.sendMoveAside(this.getRequester(), this.getWaitForListWithSelf(), this.getTimeStamp(),
 					this.getParcelWaitTime(), this.getNextWantedPoint(), this.getStep());
+			this.setTimeOutCount(0);
 		}
+	}
+
+	@Override
+	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
+
 	}
 
 	@Override
@@ -113,7 +133,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			handleDeadlock = true;
 		}
 		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(), msg.getWantPos()))) {
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// propagator does not want our position
 			return;
 		}
@@ -150,6 +170,8 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			this.setPropagator(msg.getPropagator());
 			this.setParcelWaitTime(msg.getParcelWaitingSince());
 			this.setStep(msg.getStep());
+			this.setPropagatorPos(msg.getAtPos());
+			this.setPropagatorWantPos(msg.getWantPos());
 			this.setWaitForList(msg.getWaitForList());
 			this.setTimeOutCount(0);
 			this.setTimeStamp(msg.getTimeStamp());
@@ -260,6 +282,22 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 
 	private void setNextWantedPoint(Point nextWantedPoint) {
 		this.nextWantedPoint = nextWantedPoint;
+	}
+	
+	private Point getPropagatorPos() {
+		return this.propagatorPos;
+	}
+	
+	private void setPropagatorPos(Point propagatorPos) {
+		this.propagatorPos = propagatorPos;
+	}
+	
+	private Point getPropagatorWantPos() {
+		return this.propagatorWantPos;
+	}
+	
+	private void setPropagatorWantPos(Point propagatorWantPos) {
+		this.propagatorWantPos = propagatorWantPos;
 	}
 
 	private boolean isWaitingOnOther() {

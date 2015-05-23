@@ -32,35 +32,37 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 
 	@Override
 	public void act(TimeLapse timeLapse) {
-		// if it so happens that we can deliver the parcel, let everyone know and deliver it
-		if (this.getAgent().getParcel().get().getDestination().equals(this.getAgent().getPosition())) {
-			this.tryDeliverParcel(timeLapse);
-			return;
-		}
 
 		this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getStartTime());
 		// if there was a time-out, first try to move to the next wanted point
 		Set<Point> occupiedPoints = this.getAgent().getOccupiedPointsInVisualRange();
 		if (! occupiedPoints.contains(this.getNextWantedPoint())) {
 			// we can indeed move forward
-			this.getAgent().followPath(timeLapse);
-			if (this.getAgent().getPosition().equals(this.getNextWantedPoint())) {
+			this.doMoveForward(this.getAgent().getPosition().get(), timeLapse);
+			if (! this.getAgent().getNextPointOnPath().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
 				this.afterMoveForward(timeLapse);
-				return;
 			}
+		}
+		
+		// if it so happens that we can deliver the parcel, let everyone know and deliver it
+		if (this.getAgent().getParcel().get().getDestination().equals(this.getAgent().getPosition().get())) {
+			this.tryDeliverParcel(timeLapse);
+			return;
 		}
 
 		if (this.timeOutOccurred()) {
 			// resend move-aside
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
 					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+			this.setTimeOutCount(0);
 		}
 	}
 
 	private void afterMoveForward(TimeLapse timeLapse) {
 		this.setStep(this.getStep() + 1);
 		this.setTimeStamp(timeLapse.getTime());
+		this.setTimeOutCount(0);
 
 		this.setNextWantedPoint(this.getAgent().getNextPointOnPath().get());
 		if (! this.getAgent().occupiedPointsOnPathWithinRange()) {
@@ -68,6 +70,13 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.sendHomeFree();
 			this.doStateTransition(Optional.of(new CarryingParcelNoJamState(this.getAgent(), this.getBackLogs(), true)));
 		}
+	}
+	
+	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
+		this.afterMoveForward(timeLapse);
+		this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
+				this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+		this.setTimeOutCount(0);
 	}
 
 	@Override
@@ -114,7 +123,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	}
 
 	private void setTimeOutCount(long timeOutCount) {
-		this.timeOutCount = Math.min(this.getTimeOutCount(), AgentState.RESEND_TIMEOUT);
+		this.timeOutCount = Math.min(timeOutCount, AgentState.RESEND_TIMEOUT);
 	}
 
 	private boolean timeOutOccurred() {
@@ -147,7 +156,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			return;
 		}
 		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(), msg.getWantPos()))) {
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// requester does not want our point
 			return;
 		}
@@ -171,7 +180,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
 			// release all agents waiting on this agent
 			this.sendHomeFree();
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getWantPos(), msg.getAtPos())));
 		}
 	}
 

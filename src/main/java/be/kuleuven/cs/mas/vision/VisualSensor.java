@@ -1,6 +1,7 @@
 package be.kuleuven.cs.mas.vision;
 
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
+import com.github.rinde.rinsim.geom.Connection;
 import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
@@ -30,21 +31,38 @@ public class VisualSensor {
 	}
 	
 	public Set<Point> getOccupiedPointsWithinVisualRange() {
+		if (this.getRoadModel().getGraph().containsNode(this.getPosition())) {
+			return this.getOccupiedPointsOnNode();
+		} else {
+			return this.getOccupiedPointsOnConnection();
+		}
+		
+	}
+
+	private Set<Point> getOccupiedPointsOnNode() {
 		Set<Point> toReturn = new HashSet<>();
 		Queue<PointQueueEntry> toProcess = new LinkedList<>();
 		
 		// initialise toProcess
-		for (Point outgoing : this.getGraph().getOutgoingConnections(this.getPosition())) {
-			toProcess.add(new PointQueueEntry(outgoing, this.getPosition(), 1, Direction.determineDirectionOf(this.getPosition(), outgoing)));
+		Point closest = this.getOwner().getClosestGraphPoint();
+		for (Point outgoing : this.getGraph().getOutgoingConnections(closest)) {
+			toProcess.add(new PointQueueEntry(outgoing, closest, 1, Direction.determineDirectionOf(closest, outgoing)));
 		}
 		
+		processQueue(toReturn, toProcess);
+		return toReturn;
+	}
+
+	private void processQueue(Set<Point> toReturn,
+			Queue<PointQueueEntry> toProcess) {
 		while (! toProcess.isEmpty()) {
 			PointQueueEntry toCheck = toProcess.poll();
 			boolean added = false;
 			
 			// check if a RoadUser occupies the point or occupies the connection between it and the previous point
 			// with respect to the point of view of the VisualSensorOwner
-			if (this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint(), this.getOwner())) {
+			if (! toCheck.getFromPoint().equals(toCheck.getPoint()) &&
+					this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint(), this.getOwner())) {
 				toReturn.add(toCheck.getPoint());
 				added = true;
 			}
@@ -63,6 +81,22 @@ public class VisualSensor {
 				toProcess.add(new PointQueueEntry(otherEnd.get(), toCheck.getPoint(), toCheck.getRange() + 1, toCheck.getDirection()));
 			}
 		}
+	}
+	
+	private Set<Point> getOccupiedPointsOnConnection() {
+		Set<Point> toReturn = new HashSet<>();
+		Queue<PointQueueEntry> toProcess = new LinkedList<>();
+		Connection conn = this.getRoadModel().getConnection(this.getOwner()).get();
+		if (! this.getRoadModel().isObstructedOn(this.getOwner(), conn)) {
+			toProcess.add(new PointQueueEntry(conn.to(), conn.to(), 1, Direction.determineDirectionOf(conn.from(), conn.to())));
+		}
+		if (this.getGraph().hasConnection(conn.to(), conn.from())) {
+			conn = this.getGraph().getConnection(conn.to(), conn.from());
+			if (! this.getRoadModel().isObstructedOn(this.getOwner(), conn)) {
+				toProcess.add(new PointQueueEntry(conn.to(), conn.to(), 1, Direction.determineDirectionOf(conn.from(), conn.to())));
+			}
+		}
+		this.processQueue(toReturn, toProcess);
 		return toReturn;
 	}
 	
@@ -73,7 +107,7 @@ public class VisualSensor {
 	}
 	
 	private Point getPosition() {
-		return this.getOwner().getMostRecentPosition();
+		return this.getOwner().getPosition().get();
 	}
 	
 	private CollisionGraphRoadModel getRoadModel() {

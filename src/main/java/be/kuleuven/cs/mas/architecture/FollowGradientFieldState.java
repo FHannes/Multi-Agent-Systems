@@ -105,6 +105,11 @@ public class FollowGradientFieldState extends AgentState {
 		}
 	}
 
+	@Override
+	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
+		
+	}
+
 	private void followGradientField(Set<Point> occupied, Point... forbidden) {
 		Queue<Point> targets = getAgent().getGradientModel().getGradientTargets(getAgent());
 		java.util.Optional<Point> target = targets.stream().filter(t -> !forbiddenPoints.containsValue(t) &&
@@ -157,8 +162,8 @@ public class FollowGradientFieldState extends AgentState {
 		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
 				|| (this.getNextSelectedPoint().isPresent() &&
 						this.getNextSelectedPoint().get().equals(msg.getWantPos()) &&
-						this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(),
-								this.getNextSelectedPoint().get())))) {
+						this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(),
+								this.getNextSelectedPoint().get(), msg.getAtPos())))) {
 			// propagator does not want our position
 			return;
 		}

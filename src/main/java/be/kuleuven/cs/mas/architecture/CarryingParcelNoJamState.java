@@ -43,20 +43,8 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 	@Override
 	public void act(TimeLapse timeLapse) {
 
-		// first of all, check if the parcel can be delivered
-		if (this.getAgent().getPosition().get().equals(this.getAgent().getParcel().get().getDestination())) {
-			this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
-			// if parcel is not in cargo anymore, delivery was successful
-			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
-				// parcel has been delivered, so follow gradient field now
-				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
-				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
-			}
-			return;
-		}
-
-		// if not, follow the planned path
 		Set<Point> occupied = this.getAgent().getOccupiedPointsInVisualRange();
+		Point initialPosition = this.getAgent().getPosition().get();
 		if (occupied.contains(this.getAgent().getNextPointOnPath().get())) {
 			System.out.println("Protocol started by " + this.getAgent().getName());
 			// we have a traffic jam, so begin protocol
@@ -66,8 +54,42 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
 		} else {
 			// otherwise, move forward
-			this.getAgent().followPath(timeLapse);
+			try {
+				this.getAgent().followPath(timeLapse);
+			} catch (IllegalArgumentException e) {
+				if (this.getAgent().getPosition().get().equals(initialPosition)) {
+					// execution should have reached the if branch instead, so throw it
+					throw e;
+				} else {
+					// we have a traffic jam, so begin protocol
+					this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
+							timeLapse.getTime(), this.getAgent().getParcel().get().getWaitingSince(),
+							this.getAgent().getNextPointOnPath().get(), 0);
+					this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
+				}
+			}
+			
 		}
+		
+		// first of all, check if the parcel can be delivered
+		if (this.getAgent().getPosition().get().equals(this.getAgent().getParcel().get().getDestination())) {
+			this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
+			// if parcel is not in cargo anymore, delivery was successful
+			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
+				// parcel has been delivered, so follow gradient field now
+				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
+				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
+			}
+		}
+	}
+	
+	@Override
+	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
+		// we have a traffic jam, so begin protocol
+		this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
+				timeLapse.getTime(), this.getAgent().getParcel().get().getWaitingSince(),
+				this.getAgent().getNextPointOnPath().get(), 0);
+		this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
 	}
 	
 	protected void processMoveAsideMessage(MoveAsideMessage msg) {
@@ -80,7 +102,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			return;
 		}
 		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().isOnConnectionTo(this.getAgent(), msg.getWantPos()))) {
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// requester does not want this agent's position, so ignore
 			return;
 		}
@@ -97,7 +119,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			.addField("propagator", msg.getPropagator())
 			.addField("timestamp", Long.toString(msg.getTimeStamp()));
 			this.getAgent().sendMessage(this.getAgent().getMessageBuilder().build());
-			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getAtPos())));
+			this.doStateTransition(Optional.of(new CarryingParcelGetOutOfTheWayState(this.getAgent(), this.getBackLogs(), msg.getRequester(), msg.getPropagator(), msg.getWaitForList(), msg.getTimeStamp(), msg.getParcelWaitingSince(), msg.getStep(), msg.getWantPos(), msg.getAtPos())));
 		}
 	}
 

@@ -12,5 +12,7 @@ public interface VisualSensorOwner extends RoadUser {
 	public Point getMostRecentPosition();
 	
 	public CollisionGraphRoadModel getRoadModel();
+	
+	public Point getClosestGraphPoint();
 
 }
