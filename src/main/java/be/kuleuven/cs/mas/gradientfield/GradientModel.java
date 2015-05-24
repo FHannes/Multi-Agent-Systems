@@ -2,16 +2,19 @@ package be.kuleuven.cs.mas.gradientfield;
 
 import be.kuleuven.cs.mas.gradientfield.crawler.DistanceMap;
 import be.kuleuven.cs.mas.gradientfield.crawler.GraphCrawler;
+
 import com.github.rinde.rinsim.core.model.AbstractModel;
 import com.github.rinde.rinsim.core.model.ModelProvider;
 import com.github.rinde.rinsim.core.model.ModelReceiver;
 import com.github.rinde.rinsim.core.model.pdp.PDPModel;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
+import com.github.rinde.rinsim.geom.Connection;
 import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
 
 import javax.annotation.Nullable;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,9 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
 
     @Nullable
     private PDPModel pdpModel;
+    
+    @Nullable
+    private CollisionGraphRoadModel roadModel;
 
     public DistanceMap getDistanceMap(Point point) {
         if (distanceMaps.containsKey(point)) {
@@ -62,13 +68,26 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         Set<FieldEmitter> exclusion = new HashSet<>();
         exclusion.add(emitter);
 
-        Map<Point, Double> gradientValues = graph.getOutgoingConnections(emitter.getPosition().get()).stream().collect(
-                Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
-        );
+        if (graph.containsNode(emitter.getPosition().get())) {
+        	Map<Point, Double> gradientValues = graph.getOutgoingConnections(emitter.getPosition().get()).stream().collect(
+                    Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
+            );
 
-        return gradientValues.keySet().stream().sorted(
-                (p1, p2) -> gradientValues.get(p1) - gradientValues.get(p2) < 0 ? -1 : 1
-        ).collect(Collectors.toCollection(LinkedList::new));
+            return gradientValues.keySet().stream().sorted(
+                    (p1, p2) -> gradientValues.get(p1) - gradientValues.get(p2) < 0 ? -1 : 1
+            ).collect(Collectors.toCollection(LinkedList::new));
+        } else {
+        	Connection<? extends ConnectionData> conn = roadModel.getConnection(emitter).get();
+        	List<Point> pointOptions = Arrays.asList(conn.from(), conn.to());
+        	
+        	Map<Point, Double> gradientValues = pointOptions.stream().collect(
+                    Collectors.toMap(p -> p, p -> getGradient(p, exclusion))
+            );
+
+            return gradientValues.keySet().stream().sorted(
+                    (p1, p2) -> gradientValues.get(p1) - gradientValues.get(p2) < 0 ? -1 : 1
+            ).collect(Collectors.toCollection(LinkedList::new));
+        }
     }
 
     public List<FieldEmitter> getEmitters() {
@@ -92,6 +111,7 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
     @Override
     public void registerModelProvider(ModelProvider mp) {
         pdpModel = mp.tryGetModel(PDPModel.class);
+        roadModel = mp.tryGetModel(CollisionGraphRoadModel.class);
         graph = mp.getModel(CollisionGraphRoadModel.class).getGraph();
         graphCrawler = new GraphCrawler(graph);
     }

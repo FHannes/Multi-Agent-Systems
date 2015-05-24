@@ -38,4 +38,8 @@ public class AgentMessage implements MessageContents {
 		
 		return toReturn;
 	}
+	
+	public String toString() {
+		return this.message;
+	}
 }

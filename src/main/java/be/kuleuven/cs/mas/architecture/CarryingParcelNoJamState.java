@@ -44,8 +44,8 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 	public void act(TimeLapse timeLapse) {
 
 		Set<Point> occupied = this.getAgent().getOccupiedPointsInVisualRange();
-		Point initialPosition = this.getAgent().getPosition().get();
-		if (occupied.contains(this.getAgent().getNextPointOnPath().get())) {
+		Point toCheck = this.getAgent().getNextPointOnPath().get();
+		if (occupied.contains(toCheck)) {
 			System.out.println("Protocol started by " + this.getAgent().getName());
 			// we have a traffic jam, so begin protocol
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
@@ -55,18 +55,10 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 		} else {
 			// otherwise, move forward
 			try {
-				this.getAgent().followPath(timeLapse);
+				this.doMoveForward(this.getAgent().getPosition().get(), timeLapse);
 			} catch (IllegalArgumentException e) {
-				if (this.getAgent().getPosition().get().equals(initialPosition)) {
-					// execution should have reached the if branch instead, so throw it
-					throw e;
-				} else {
-					// we have a traffic jam, so begin protocol
-					this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
-							timeLapse.getTime(), this.getAgent().getParcel().get().getWaitingSince(),
-							this.getAgent().getNextPointOnPath().get(), 0);
-					this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
-				}
+				System.err.println("Point to check was: " + toCheck);
+				System.err.println("well, shit");
 			}
 			
 		}
@@ -101,8 +93,9 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			// somehow received own propagated move-aside request, so ignore
 			return;
 		}
-		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
+		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
+				|| this.getAgent().getNextPointOnPath().get().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos()))) {
 			// requester does not want this agent's position, so ignore
 			return;
 		}
@@ -160,7 +153,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 		// TODO Auto-generated method stub
 		if (msg.getRequester().equals(this.getAgent().getName()) ||
 				msg.getPropagator().equals(this.getAgent().getName())) {
-			this.sendNotConfirm(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp(), msg.getWantPos());
+			this.sendNotConfirm(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp(), msg.getConfirmPositions());
 		}
 	}
 

@@ -9,9 +9,11 @@ import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +29,7 @@ public abstract class AgentState {
 	public static final long RESEND_TIMEOUT = 5000;
 	protected static final Pattern NUM_PATTERN = Pattern.compile("\\d+");
 	protected static final String DEADLOCK_SEP = ",";
+	protected static final String POINTLIST_SEP = "%";
 	
 	protected AGVAgent agent;
 	private List<ReleaseBacklog> backLogs = new LinkedList<>();
@@ -77,47 +80,52 @@ public abstract class AgentState {
 	 * Processes the given message in a manner appropriate to the state
 	 */
 	public void processMessage(AgentMessage msg) {
-		List<Field> contents = msg.getContents();
-		switch(contents.get(0).getName()) {
-		case "move-aside": Optional<MoveAsideMessage> moveMessage = parseMoveAsideMessage(contents);
-		if (moveMessage.isPresent()) {
-			this.processMoveAsideMessage(moveMessage.get());
-		}
-		break;
-		case "release": Optional<ReleaseMessage> releaseMessage = parseReleaseMessage(contents);
-		if (releaseMessage.isPresent()) {
-			this.processReleaseMessage(releaseMessage.get());
-		}
-		break;
-		case "home-free": Optional<HomeFreeMessage> homeMessage = parseHomeFreeMessage(contents);
-		if (homeMessage.isPresent()) {
-			this.processHomeFreeMessage(homeMessage.get());
+		try {
+			List<Field> contents = msg.getContents();
+			switch(contents.get(0).getName()) {
+			case "move-aside": Optional<MoveAsideMessage> moveMessage = parseMoveAsideMessage(contents);
+			if (moveMessage.isPresent()) {
+				this.processMoveAsideMessage(moveMessage.get());
+			}
 			break;
-		}
-		break;
-		case "reject": Optional<RejectMessage> rejectMessage = parseRejectMessage(contents);
-		if (rejectMessage.isPresent()) {
-			this.processRejectMessage(rejectMessage.get());
+			case "release": Optional<ReleaseMessage> releaseMessage = parseReleaseMessage(contents);
+			if (releaseMessage.isPresent()) {
+				this.processReleaseMessage(releaseMessage.get());
+			}
 			break;
+			case "home-free": Optional<HomeFreeMessage> homeMessage = parseHomeFreeMessage(contents);
+			if (homeMessage.isPresent()) {
+				this.processHomeFreeMessage(homeMessage.get());
+				break;
+			}
+			break;
+			case "reject": Optional<RejectMessage> rejectMessage = parseRejectMessage(contents);
+			if (rejectMessage.isPresent()) {
+				this.processRejectMessage(rejectMessage.get());
+				break;
+			}
+			break;
+			case "ack": Optional<AckMessage> ackMessage = parseAckMessage(contents);
+			if (ackMessage.isPresent()) {
+				this.processAckMessage(ackMessage.get());
+			}
+			break;
+			case "please-confirm": Optional<PleaseConfirmMessage> pleaseConfirmMessage = parsePleaseConfirmMessage(contents);
+			if (pleaseConfirmMessage.isPresent()) {
+				this.processPleaseConfirmMessage(pleaseConfirmMessage.get());
+			}
+			break;
+			case "do-confirm": Optional<DoConfirmMessage> doConfirmMessage = parseDoConfirmMessage(contents);
+			if (doConfirmMessage.isPresent()) {
+				this.processDoConfirmMessage(doConfirmMessage.get());
+			}
+			break;
+			default: return;
+			}
+		} catch(NumberFormatException e) {
+			System.err.println("well, shit");
 		}
-		break;
-		case "ack": Optional<AckMessage> ackMessage = parseAckMessage(contents);
-		if (ackMessage.isPresent()) {
-			this.processAckMessage(ackMessage.get());
-		}
-		break;
-		case "please-confirm": Optional<PleaseConfirmMessage> pleaseConfirmMessage = parsePleaseConfirmMessage(contents);
-		if (pleaseConfirmMessage.isPresent()) {
-			this.processPleaseConfirmMessage(pleaseConfirmMessage.get());
-		}
-		break;
-		case "do-confirm": Optional<DoConfirmMessage> doConfirmMessage = parseDoConfirmMessage(contents);
-		if (doConfirmMessage.isPresent()) {
-			this.processDoConfirmMessage(doConfirmMessage.get());
-		}
-		break;
-		default: return;
-		}
+		
 	}
 	
 	protected static Optional<MoveAsideMessage> parseMoveAsideMessage(List<Field> contents) {
@@ -170,7 +178,7 @@ public abstract class AgentState {
 		.addField("want-pos", wantPos.toString());
 		
 		if (this.getAgent().getRoadModel().getGraph().containsNode(this.getAgent().getPosition().get())) {
-			this.getAgent().getMessageBuilder().addField("at-pos", this.getAgent().getPosition().toString());
+			this.getAgent().getMessageBuilder().addField("at-pos", this.getAgent().getPosition().get().toString());
 		} else {
 			this.getAgent().getMessageBuilder().addField("at-pos", this.getAgent().getRoadModel().getConnection(this.getAgent()).get().from().toString());
 		}
@@ -304,21 +312,21 @@ public abstract class AgentState {
 			return Optional.absent();
 		}
 		long timeStamp = Long.parseLong(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("want-pos")) {
+		if (! contents.get(i).getName().equals("confirm-pos")) {
 			return Optional.absent();
 		}
-		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		Set<Point> wantPos = parsePointList(contents.get(i++).getValue());
 		return Optional.of(new PleaseConfirmMessage(requester, propagator, timeStamp, wantPos));
 	}
 	
 	protected abstract void processPleaseConfirmMessage(PleaseConfirmMessage msg);
 	
-	protected void sendPleaseConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+	protected void sendPleaseConfirm(String requester, String propagator, long timeStamp, Set<Point> confirmPos) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("please-confirm")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.addField("timestamp", Long.toString(timeStamp))
-				.addField("want-pos", wantPos.toString())
+				.addField("confirm-pos", toPointList(confirmPos))
 				.build());
 	}
 	
@@ -336,21 +344,21 @@ public abstract class AgentState {
 			return Optional.absent();
 		}
 		long timeStamp = Long.parseLong(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("want-pos")) {
+		if (! contents.get(i).getName().equals("confirm-pos")) {
 			return Optional.absent();
 		}
-		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		Set<Point> wantPos = parsePointList(contents.get(i++).getValue());
 		return Optional.of(new DoConfirmMessage(requester, propagator, timeStamp, wantPos));
 	}
 	
 	protected abstract void processDoConfirmMessage(DoConfirmMessage msg);
 	
-	protected void sendDoConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+	protected void sendDoConfirm(String requester, String propagator, long timeStamp, Set<Point> wantPos) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("please-confirm")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.addField("timestamp", Long.toString(timeStamp))
-				.addField("want-pos", wantPos.toString())
+				.addField("confirm-pos", toPointList(wantPos))
 				.build());
 	}
 	
@@ -368,22 +376,39 @@ public abstract class AgentState {
 			return Optional.absent();
 		}
 		long timeStamp = Long.parseLong(contents.get(i++).getValue());
-		if (! contents.get(i).getName().equals("want-pos")) {
+		if (! contents.get(i).getName().equals("confirm-pos")) {
 			return Optional.absent();
 		}
-		Point wantPos = Point.parsePoint(contents.get(i++).getValue());
+		Set<Point> wantPos = parsePointList(contents.get(i++).getValue());
 		return Optional.of(new NotConfirmMessage(requester, propagator, timeStamp, wantPos));
 	}
 	
 	protected abstract void processNotConfirmMessage(NotConfirmMessage msg);
 	
-	protected void sendNotConfirm(String requester, String propagator, long timeStamp, Point wantPos) {
+	protected void sendNotConfirm(String requester, String propagator, long timeStamp, Set<Point> wantPos) {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("not-confirm")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.addField("timestamp", Long.toString(timeStamp))
-				.addField("want-pos", wantPos.toString())
+				.addField("confirm-pos", toPointList(wantPos))
 				.build());
+	}
+	
+	protected static Set<Point> parsePointList(String points) {
+		Set<Point> toReturn = new HashSet<Point>();
+		for (String ele : points.split(POINTLIST_SEP)) {
+			toReturn.add(Point.parsePoint(ele));
+		}
+		return toReturn;
+	}
+	
+	protected static String toPointList(Set<Point> points) {
+		StringBuilder builder = new StringBuilder();
+		for (Point ele : points) {
+			builder.append(ele.toString());
+			builder.append(POINTLIST_SEP);
+		}
+		return builder.toString();
 	}
 	
 	protected AGVAgent getAgent() {

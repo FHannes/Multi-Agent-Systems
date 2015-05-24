@@ -4,6 +4,7 @@ import com.github.rinde.rinsim.geom.*;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
+import com.github.rinde.rinsim.geom.Graphs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ import static com.google.common.collect.Lists.newArrayList;
 public class GraphUtils {
 
     public static final double VEHICLE_LENGTH = 2d;
-    public static final int GRAPH_COLS = 8;
+    public static final int GRAPH_COLS = 20;
     public static final int GRAPH_ROWS = 7;
     public static final int VISUAL_RANGE = 2;
 
@@ -48,7 +49,7 @@ public class GraphUtils {
         Graphs.addBiPath(g, Lists.reverse(newArrayList(matrix.row(
                 matrix.rowKeySet().size() - 1).values())));
 
-        return new ListenableGraph<>(g);
+        return new ListenableGraph<>(Graphs.unmodifiableGraph(g));
     }
 
     public static List<Point> getDropOffSites() {

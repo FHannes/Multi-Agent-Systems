@@ -1,5 +1,7 @@
 package be.kuleuven.cs.mas.architecture;
 
+import java.util.Set;
+
 import com.github.rinde.rinsim.geom.Point;
 
 public class PleaseConfirmMessage {
@@ -7,14 +9,15 @@ public class PleaseConfirmMessage {
 	private String requester;
 	private String propagator;
 	private long timeStamp;
-	private Point wantPos;
+	private Set<Point> confirmPositions;
 	
 	public PleaseConfirmMessage(String requester, String propagator,
-			long timeStamp, Point wantPos) {
+			long timeStamp, Set<Point> confirmPositions) {
 		super();
 		this.requester = requester;
+		this.propagator = propagator;
 		this.timeStamp = timeStamp;
-		this.wantPos = wantPos;
+		this.confirmPositions = confirmPositions;
 	}
 
 	public String getRequester() {
@@ -29,8 +32,8 @@ public class PleaseConfirmMessage {
 		return timeStamp;
 	}
 
-	public Point getWantPos() {
-		return wantPos;
+	public Set<Point> getConfirmPositions() {
+		return confirmPositions;
 	}
 
 }

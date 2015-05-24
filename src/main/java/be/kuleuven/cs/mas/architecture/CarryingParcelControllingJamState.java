@@ -64,7 +64,10 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		this.setTimeStamp(timeLapse.getTime());
 		this.setTimeOutCount(0);
 
-		this.setNextWantedPoint(this.getAgent().getNextPointOnPath().get());
+		if (this.getAgent().getNextPointOnPath().isPresent()) {
+			this.setNextWantedPoint(this.getAgent().getNextPointOnPath().get());
+		}
+		
 		if (! this.getAgent().occupiedPointsOnPathWithinRange()) {
 			// we are home free
 			this.sendHomeFree();
@@ -155,8 +158,9 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (msg.getPropagator().equals(this.getAgent().getName())) {
 			return;
 		}
-		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
+		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos())
+				|| this.getAgent().getNextPointOnPath().get().equals(msg.getWantPos()))) {
 			// requester does not want our point
 			return;
 		}
@@ -165,6 +169,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			this.sendHomeFree();
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
 					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+			return;
 		}
 		if (this.trafficPriorityFunction(msg.getRequester(), msg.getParcelWaitingSince())) {
 			this.getAgent().getMessageBuilder().addField("reject")
@@ -228,10 +233,11 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
 		if (msg.getRequester().equals(this.getAgent().getName())
 				&& msg.getRequester().equals(this.getAgent().getName())) {
-			if (this.getNextWantedPoint().equals(msg.getWantPos()) && this.getTimeStamp() >= msg.getTimeStamp()) {
-			this.sendDoConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			if (msg.getConfirmPositions().contains(this.getNextWantedPoint())
+					&& this.getTimeStamp() >= msg.getTimeStamp()) {
+			this.sendDoConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), msg.getConfirmPositions());
 			} else {
-				this.sendNotConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+				this.sendNotConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), msg.getConfirmPositions());
 			}
 		}
 	}

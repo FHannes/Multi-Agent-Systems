@@ -44,9 +44,8 @@ public class VisualSensor {
 		Queue<PointQueueEntry> toProcess = new LinkedList<>();
 		
 		// initialise toProcess
-		Point closest = this.getOwner().getClosestGraphPoint();
-		for (Point outgoing : this.getGraph().getOutgoingConnections(closest)) {
-			toProcess.add(new PointQueueEntry(outgoing, closest, 1, Direction.determineDirectionOf(closest, outgoing)));
+		for (Point outgoing : this.getGraph().getOutgoingConnections(this.getPosition())) {
+			toProcess.add(new PointQueueEntry(outgoing, this.getPosition(), 1, Direction.determineDirectionOf(this.getPosition(), outgoing)));
 		}
 		
 		processQueue(toReturn, toProcess);
@@ -89,11 +88,15 @@ public class VisualSensor {
 		Connection conn = this.getRoadModel().getConnection(this.getOwner()).get();
 		if (! this.getRoadModel().isObstructedOn(this.getOwner(), conn)) {
 			toProcess.add(new PointQueueEntry(conn.to(), conn.to(), 1, Direction.determineDirectionOf(conn.from(), conn.to())));
+		} else {
+			toReturn.add(conn.to());
 		}
 		if (this.getGraph().hasConnection(conn.to(), conn.from())) {
 			conn = this.getGraph().getConnection(conn.to(), conn.from());
 			if (! this.getRoadModel().isObstructedOn(this.getOwner(), conn)) {
 				toProcess.add(new PointQueueEntry(conn.to(), conn.to(), 1, Direction.determineDirectionOf(conn.from(), conn.to())));
+			} else {
+				toReturn.add(conn.to());
 			}
 		}
 		this.processQueue(toReturn, toProcess);

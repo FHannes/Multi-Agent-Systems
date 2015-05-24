@@ -19,8 +19,10 @@ import be.kuleuven.cs.mas.vision.Direction;
 
 import com.github.rinde.rinsim.core.TimeLapse;
 import com.github.rinde.rinsim.event.Event;
+import com.github.rinde.rinsim.event.EventAPI;
 import com.github.rinde.rinsim.event.Listener;
 import com.github.rinde.rinsim.geom.Connection;
+import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.ListenableGraph;
 import com.github.rinde.rinsim.geom.ListenableGraph.GraphEvent;
 import com.github.rinde.rinsim.geom.Point;
@@ -39,6 +41,7 @@ import javax.measure.unit.Unit;
 
 import java.util.Collection;
 import java.util.Queue;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
@@ -54,7 +57,7 @@ import static com.google.common.base.Verify.verify;
  * graph see {@link DynamicGraphRoadModel}.
  * @author Rinde van Lon
  */
-public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
+public class CollisionGraphRoadModel extends DynamicGraphRoadModel implements Listener {
 	private final double minConnLength;
 	private final double vehicleLength;
 	private final double minDistance;
@@ -71,6 +74,7 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 				new ModificationChecker(minConnLength),
 				ListenableGraph.EventTypes.ADD_CONNECTION,
 				ListenableGraph.EventTypes.CHANGE_CONNECTION_DATA);
+		builder.graph.getEventAPI().addListener(this);
 	}
 
 	@Override
@@ -294,23 +298,101 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	 *           <code>from</code> and <code>to</code>.
 	 */
 	public boolean hasRoadUserOnIgnoreFromAndTo(Point from, Point to, RoadUser ignore) {
-		checkArgument(graph.hasConnection(from, to),
-				"There is no connection between %s and %s.", from, to);
-		return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
-				|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
+		try {
+			checkArgument(graph.hasConnection(from, to),
+					"There is no connection between %s and %s.", from, to);
+			return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+					|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
+		} catch(IllegalArgumentException e) {
+			graph.addConnection(from, to);
+			System.err.println("somehow connection between " + from + " and " + to + " was removed; it was readded");
+			return this.connKeyHasMovingRoadUser(graph.getConnection(from, to), ignore)
+					|| (graph.hasConnection(to, from) ? this.connKeyHasMovingRoadUser(graph.getConnection(to, from), ignore) : false);
+		}
 	}
-	
+
 	/**
 	 * True if roadUser is between reference and to
 	 */
 	public boolean occupiesPointWithRespectTo(RoadUser roadUser, Point to, Point reference) {
-		if (! this.isOnConnection(this.getConnection(roadUser).get(), to)) {
+		if (! connMap.containsValue(roadUser) || ! this.isOnConnection(this.getConnection(roadUser).get(), to)) {
 			return false;
 		}
+
+		return this.doOccupiesPointWithRespectTo(this.getPosition(roadUser), to, reference);
+	}
+	
+	public boolean occupiesPoint(RoadUser roadUser, Point point) {
+		return occupiedNodes.get(roadUser).contains(point);
+	}
+	
+	public boolean occupiesOneOfPoints(RoadUser roadUser, Set<Point> points) {
+		for (Point ele : occupiedNodes.get(roadUser)) {
+			if (points.contains(ele)) {
+				return true;
+			}
+		}
 		
-		Direction posTo = Direction.determineDirectionOf(this.getPosition(roadUser), to);
-		Direction posRef = Direction.determineDirectionOf(this.getPosition(roadUser), reference);
-		
+		return false;
+	}
+	
+	public Set<Point> getOccupiedPoints(RoadUser user) {
+		return occupiedNodes.get(user);
+	}
+
+	/**
+	 * to should be the end point of a connection. True if roadUserPosition is between to and reference
+	 */
+	public boolean occupiesPointWithRespectTo(Point roadUserPosition, Point to, Point reference) {
+		boolean foundConnection = false;
+
+		for (Point incoming : this.getGraph().getIncomingConnections(to)) {
+			Connection<? extends ConnectionData> toConsider = this.getConnection(incoming, to);
+			if (this.isOnConnection(toConsider, roadUserPosition)) {
+				foundConnection = true;
+				break;
+			}
+		}
+
+		return foundConnection ? this.doOccupiesPointWithRespectTo(roadUserPosition, to, reference) : false;
+	}
+	
+	public boolean isObstructedOn(RoadUser roadUser, Connection connection) {
+		Direction obstructionDirection = Direction.determineDirectionOf(this.getPosition(roadUser), connection.to());
+		for (RoadUser user : occupiedNodes.keySet()) {
+			if (user instanceof MovingRoadUser && ! user.equals(roadUser)) {
+				if (occupiedNodes.get(user).contains(connection.to())) {
+					return true;
+				}
+			}
+		}
+//		if (posMap.containsKey(connection.to())) {
+//			for (RoadUser user : posMap.get(connection.to())) {
+//				if (user instanceof MovingRoadUser) {
+//					return true;
+//				}
+//			}
+//		}
+		for (RoadUser ele : connMap.get(connection)) {
+			if (ele.equals(roadUser)) {
+				continue;
+			}
+			if (obstructionDirection.equals(Direction.determineDirectionOf(this.getPosition(roadUser), this.getPosition(ele))))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected boolean doOccupiesPointWithRespectTo(Point roadUserPosition, Point to, Point reference) {
+		if (roadUserPosition.equals(to) || roadUserPosition.equals(reference)) {
+			return false;
+		}
+
+		Direction posTo = Direction.determineDirectionOf(roadUserPosition, to);
+		Direction posRef = Direction.determineDirectionOf(roadUserPosition, reference);
+
 		return ! posTo.equals(posRef);
 	}
 
@@ -324,12 +406,19 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel {
 	}
 
 	private boolean posKeyHasMovingRoadUser(Point key, RoadUser ignore) {
-		for (RoadUser user : posMap.get(key)) {
+		for (RoadUser user : occupiedNodes.keySet()) {
 			if (user instanceof MovingRoadUser && ! user.equals(ignore)) {
-				return true;
+				if (occupiedNodes.get(user).contains(key)) {
+					return true;
+				}
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public void handleEvent(Event e) {
+		System.err.println("graph changed!");
 	}
 
 	/**

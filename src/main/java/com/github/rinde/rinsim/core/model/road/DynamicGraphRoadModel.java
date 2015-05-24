@@ -59,178 +59,165 @@ import static com.google.common.base.Verify.verify;
  * @author Rinde van Lon
  */
 public class DynamicGraphRoadModel extends GraphRoadModel {
-  private final ListenableGraph<? extends ConnectionData> listenableGraph;
-  final Multimap<Connection<?>, RoadUser> connMap;
-  final Multimap<Point, RoadUser> posMap;
+	private final ListenableGraph<? extends ConnectionData> listenableGraph;
+	final Multimap<Connection<?>, RoadUser> connMap;
+	final Multimap<Point, RoadUser> posMap;
 
-  /**
-   * Creates a new instance using the specified {@link ListenableGraph} as road
-   * structure.
-   * @param pGraph The graph which will be used as road structure.
-   * @param distanceUnit The distance unit used in the graph.
-   * @param speedUnit The speed unit for {@link MovingRoadUser}s in this model.
-   */
-  public DynamicGraphRoadModel(
-      ListenableGraph<? extends ConnectionData> pGraph,
-      Unit<Length> distanceUnit, Unit<Velocity> speedUnit) {
-    super(pGraph, distanceUnit, speedUnit);
-    listenableGraph = pGraph;
-    listenableGraph.getEventAPI().addListener(
-        new GraphModificationChecker(this));
-    connMap = LinkedHashMultimap.create();
-    posMap = LinkedHashMultimap.create();
-  }
+	/**
+	 * Creates a new instance using the specified {@link ListenableGraph} as road
+	 * structure.
+	 * @param pGraph The graph which will be used as road structure.
+	 * @param distanceUnit The distance unit used in the graph.
+	 * @param speedUnit The speed unit for {@link MovingRoadUser}s in this model.
+	 */
+	public DynamicGraphRoadModel(
+			ListenableGraph<? extends ConnectionData> pGraph,
+			Unit<Length> distanceUnit, Unit<Velocity> speedUnit) {
+		super(pGraph, distanceUnit, speedUnit);
+		listenableGraph = pGraph;
+		listenableGraph.getEventAPI().addListener(
+				new GraphModificationChecker(this));
+		connMap = LinkedHashMultimap.create();
+		posMap = LinkedHashMultimap.create();
+	}
 
-  /**
-   * Creates a new instance using the specified {@link ListenableGraph} as road
-   * structure. The default units are used as defined by
-   * {@link AbstractRoadModel}.
-   * @param pGraph The graph which will be used as road structure.
-   */
-  public DynamicGraphRoadModel(ListenableGraph<? extends ConnectionData> pGraph) {
-    this(pGraph, SI.KILOMETER, NonSI.KILOMETERS_PER_HOUR);
-  }
+	/**
+	 * Creates a new instance using the specified {@link ListenableGraph} as road
+	 * structure. The default units are used as defined by
+	 * {@link AbstractRoadModel}.
+	 * @param pGraph The graph which will be used as road structure.
+	 */
+	public DynamicGraphRoadModel(ListenableGraph<? extends ConnectionData> pGraph) {
+		this(pGraph, SI.KILOMETER, NonSI.KILOMETERS_PER_HOUR);
+	}
 
-  @Override
-  public void addObjectAt(RoadUser newObj, Point pos) {
-    posMap.put(pos, newObj);
-    super.addObjectAt(newObj, pos);
-  }
+	@Override
+	public void addObjectAt(RoadUser newObj, Point pos) {
+		posMap.put(pos, newObj);
+		super.addObjectAt(newObj, pos);
+	}
 
-  @Override
-  public void addObjectAtSamePosition(RoadUser newObj, RoadUser existingObj) {
-    super.addObjectAtSamePosition(newObj, existingObj);
-    final Loc loc = objLocs.get(newObj);
-    if (loc.isOnConnection()) {
-      final Connection<? extends ConnectionData> conn = loc.conn.get();
-      connMap.put(conn, newObj);
-    } else {
-      posMap.put(loc, newObj);
-    }
-  }
+	@Override
+	public void addObjectAtSamePosition(RoadUser newObj, RoadUser existingObj) {
+		super.addObjectAtSamePosition(newObj, existingObj);
+		final Loc loc = objLocs.get(newObj);
+		if (loc.isOnConnection()) {
+			final Connection<? extends ConnectionData> conn = loc.conn.get();
+			connMap.put(conn, newObj);
+		} else {
+			posMap.put(loc, newObj);
+		}
+	}
 
-  @Override
-  public void clear() {
-    super.clear();
-    connMap.clear();
-    posMap.clear();
-  }
+	@Override
+	public void clear() {
+		super.clear();
+		connMap.clear();
+		posMap.clear();
+	}
 
-  /**
-   * @return A reference to the graph.
-   */
-  @Override
-  public Graph<? extends ConnectionData> getGraph() {
-    return listenableGraph;
-  }
+	/**
+	 * @return A reference to the graph.
+	 */
+	@Override
+	public Graph<? extends ConnectionData> getGraph() {
+		return listenableGraph;
+	}
 
-  @Override
-  protected MoveProgress doFollowPath(MovingRoadUser object, Queue<Point> path,
-      TimeLapse time) {
-    final Loc prevLoc = objLocs.get(object);
-    if (prevLoc.isOnConnection()) {
-      connMap.remove(prevLoc.conn.get(), object);
-    } else {
-      posMap.remove(prevLoc, object);
-    }
-    final MoveProgress mp;
-    try {
-      mp = super.doFollowPath(object, path, time);
-    } catch (final IllegalArgumentException e) {
-      throw e;
-    } finally {
-      final Loc newLoc = objLocs.get(object);
-      if (newLoc.isOnConnection()) {
-        connMap.put(newLoc.conn.get(), object);
-      } else {
-        posMap.put(newLoc, object);
-      }
-    }
-    return mp;
-  }
+	@Override
+	protected MoveProgress doFollowPath(MovingRoadUser object, Queue<Point> path,
+			TimeLapse time) {
+		final Loc prevLoc = objLocs.get(object);
+		if (prevLoc.isOnConnection()) {
+			connMap.remove(prevLoc.conn.get(), object);
+		} else {
+			posMap.remove(prevLoc, object);
+		}
+		final MoveProgress mp;
+		try {
+			mp = super.doFollowPath(object, path, time);
+		} catch (final IllegalArgumentException e) {
+			throw e;
+		} finally {
+			final Loc newLoc = objLocs.get(object);
+			if (newLoc.isOnConnection()) {
+				connMap.put(newLoc.conn.get(), object);
+			} else {
+				posMap.put(newLoc, object);
+			}
+		}
+		return mp;
+	}
 
-  /**
-   * Checks whether there is a {@link RoadUser} on the connection between
-   * <code>from</code> and <code>to</code>.
-   * @param from The start point of a connection.
-   * @param to The end point of a connection.
-   * @return <code>true</code> if a {@link RoadUser} occupies either
-   *         <code>from</code>, <code>to</code> or the connection between
-   *         <code>from</code> and <code>to</code>, <code>false</code>
-   *         otherwise.
-   * @throws IllegalArgumentException if no connection exists between
-   *           <code>from</code> and <code>to</code>.
-   */
-  public boolean hasRoadUserOn(Point from, Point to) {
-    checkArgument(graph.hasConnection(from, to),
-        "There is no connection between %s and %s.", from, to);
-    return connMap.containsKey(graph.getConnection(from, to))
-        || posMap.containsKey(from) || posMap.containsKey(to);
-  }
-  
-  public boolean isObstructedOn(RoadUser roadUser, Connection connection) {
-	  Direction obstructionDirection = Direction.determineDirectionOf(this.getPosition(roadUser), connection.to());
-	  for (RoadUser ele : connMap.get(connection)) {
-		  if (ele.equals(roadUser)) {
-			  continue;
-		  }
-		  if (obstructionDirection.equals(Direction.determineDirectionOf(this.getPosition(roadUser), this.getPosition(ele)))) {
-			  return true;
-		  }
-	  }
-	  return false;
-  }
+	/**
+	 * Checks whether there is a {@link RoadUser} on the connection between
+	 * <code>from</code> and <code>to</code>.
+	 * @param from The start point of a connection.
+	 * @param to The end point of a connection.
+	 * @return <code>true</code> if a {@link RoadUser} occupies either
+	 *         <code>from</code>, <code>to</code> or the connection between
+	 *         <code>from</code> and <code>to</code>, <code>false</code>
+	 *         otherwise.
+	 * @throws IllegalArgumentException if no connection exists between
+	 *           <code>from</code> and <code>to</code>.
+	 */
+	public boolean hasRoadUserOn(Point from, Point to) {
+		checkArgument(graph.hasConnection(from, to),
+				"There is no connection between %s and %s.", from, to);
+		return connMap.containsKey(graph.getConnection(from, to))
+				|| posMap.containsKey(from) || posMap.containsKey(to);
+	}
 
-  @Override
-  public void removeObject(RoadUser object) {
-    checkArgument(objLocs.containsKey(object),
-        "RoadUser: %s does not exist.", object);
-    final Loc prevLoc = objLocs.get(object);
-    if (prevLoc.isOnConnection()) {
-      final Connection<? extends ConnectionData> conn = prevLoc.conn.get();
-      connMap.remove(conn, object);
-    } else {
-      posMap.remove(prevLoc, object);
-    }
-    super.removeObject(object);
-  }
+	@Override
+	public void removeObject(RoadUser object) {
+		checkArgument(objLocs.containsKey(object),
+				"RoadUser: %s does not exist.", object);
+		final Loc prevLoc = objLocs.get(object);
+		if (prevLoc.isOnConnection()) {
+			final Connection<? extends ConnectionData> conn = prevLoc.conn.get();
+			connMap.remove(conn, object);
+		} else {
+			posMap.remove(prevLoc, object);
+		}
+		super.removeObject(object);
+	}
 
-  private static class GraphModificationChecker implements Listener {
-    private final DynamicGraphRoadModel model;
+	private static class GraphModificationChecker implements Listener {
+		private final DynamicGraphRoadModel model;
 
-    GraphModificationChecker(DynamicGraphRoadModel pModel) {
-      model = pModel;
-    }
+		GraphModificationChecker(DynamicGraphRoadModel pModel) {
+			model = pModel;
+		}
 
-    @Override
-    public void handleEvent(Event e) {
-      verify(e instanceof GraphEvent);
-      final GraphEvent ge = (GraphEvent) e;
-      if (ge.getEventType() == EventTypes.REMOVE_CONNECTION
-          || ge.getEventType() == EventTypes.CHANGE_CONNECTION_DATA) {
+		@Override
+		public void handleEvent(Event e) {
+			verify(e instanceof GraphEvent);
+			final GraphEvent ge = (GraphEvent) e;
+			if (ge.getEventType() == EventTypes.REMOVE_CONNECTION
+					|| ge.getEventType() == EventTypes.CHANGE_CONNECTION_DATA) {
 
-        final Connection<?> conn = ge.getConnection();
-        checkState(
-            !model.connMap.containsKey(conn),
-            "A connection (%s->%s) with an object (%s) on it can not be changed or removed: %s.",
-            conn.from(), conn.to(), model.connMap.get(conn), ge.getEventType());
+				final Connection<?> conn = ge.getConnection();
+				checkState(
+						!model.connMap.containsKey(conn),
+						"A connection (%s->%s) with an object (%s) on it can not be changed or removed: %s.",
+						conn.from(), conn.to(), model.connMap.get(conn), ge.getEventType());
 
-        if (model.posMap.containsKey(conn.from())) {
-          checkState(
-              ge.getGraph().containsNode(conn.from()),
-              "There is an object on (%s) therefore the last connection to that location (%s->%s) can not be changed or removed: %s.",
-              conn.from(), conn.from(), conn.to(), ge.getEventType());
-        }
-        if (model.posMap.containsKey(conn.to())) {
-          checkState(
-              ge.getGraph().containsNode(conn.to()),
-              "There is an object on (%s) therefore the last connection to that location (%s->%s) can not be changed or removed: %s.",
-              conn.to(), conn.from(), conn.to(), ge.getEventType());
-        }
-      }
-      // remove all previously computed shortest paths because they may have
-      // been invalidated by the graph modification
-      model.objDestinations.clear();
-    }
-  }
+				if (model.posMap.containsKey(conn.from())) {
+					checkState(
+							ge.getGraph().containsNode(conn.from()),
+							"There is an object on (%s) therefore the last connection to that location (%s->%s) can not be changed or removed: %s.",
+							conn.from(), conn.from(), conn.to(), ge.getEventType());
+				}
+				if (model.posMap.containsKey(conn.to())) {
+					checkState(
+							ge.getGraph().containsNode(conn.to()),
+							"There is an object on (%s) therefore the last connection to that location (%s->%s) can not be changed or removed: %s.",
+							conn.to(), conn.from(), conn.to(), ge.getEventType());
+				}
+			}
+			// remove all previously computed shortest paths because they may have
+			// been invalidated by the graph modification
+			model.objDestinations.clear();
+		}
+	}
 }

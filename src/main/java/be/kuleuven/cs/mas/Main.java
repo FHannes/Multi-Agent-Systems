@@ -22,8 +22,8 @@ import java.util.Random;
 
 public class Main {
 
-    public static final int AGENTS = 3;
-    public static final int PARCELS = 5;
+    public static final int AGENTS = 20;
+    public static final int PARCELS = 25;
 
     private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
 
@@ -82,6 +82,7 @@ public class Main {
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
+                .setResolution(1000, 1000)
                 .show();
     }
 

@@ -34,7 +34,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.waitForList = waitForList;
 		this.timeStamp = timeStamp;
 		
-		this.doMoveAside(propagatorPos);
+		this.doMoveAside();
 	}
 	
 	public CarryingParcelGetOutOfTheWayState(AGVAgent agent, List<ReleaseBacklog> backLogs, String requester, String propagator, List<String> waitForList, long timeStamp, long parcelWaitTime, int step, Point propagatorWantPos, Point propagatorPos) {
@@ -48,7 +48,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		this.waitForList = waitForList;
 		this.timeStamp = timeStamp;
 		
-		this.doMoveAside(propagatorPos);
+		this.doMoveAside();
 	}
 
 	@Override
@@ -66,12 +66,12 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		Set<Point> occupiedPoints = this.getAgent().getOccupiedPointsInVisualRange();
 		if (! occupiedPoints.contains(this.getNextWantedPoint())) {
 			// we can indeed move forward
-			this.getAgent().followPath(this.getNextWantedPoint(), timeLapse);
+			this.doMoveForward(this.getNextWantedPoint(), this.getAgent().getPosition().get(), timeLapse);
 			if (this.getAgent().getPosition().get().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
 				this.setWaitingOnOther(false);
 				if (this.getAgent().getPosition().get().equals(this.getPropagatorWantPos())) {
-					this.doMoveAside(this.getPropagatorPos());
+					this.doMoveAside();
 				} else {
 					this.setHasMoved(true);
 				}
@@ -132,14 +132,15 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		if (this.hasDeadlock(msg.getWaitForList())) {
 			handleDeadlock = true;
 		}
-		if (! (this.getAgent().getPosition().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
+		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
+				|| this.getNextWantedPoint().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos()))) {
 			// propagator does not want our position
 			return;
 		}
 		if (handleDeadlock) { // if there is a deadlock, it can now be handled properly
 			this.sendRelease(this.getRequester(), this.getTimeStamp());
-			this.doMoveAside(msg.getAtPos(), this.getNextWantedPoint()); // try again, this time trying to move to a different point
+			this.doMoveAside(this.getNextWantedPoint()); // try again, this time trying to move to a different point
 			// this will always work because only "get out of the way" agents at a junction will ever detect deadlock
 			// since the controller will detect it first in the other case
 			return;
@@ -232,12 +233,15 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		}
 	}
 	
-	private void doMoveAside(Point... forbiddenPoints) {
-		Optional<Point> nextStep = agent.getRandomReachablePoint(new HashSet<Point>(Arrays.asList(forbiddenPoints)));
+	private void doMoveAside(Point... additionalForbidden) {
+		Set<Point> mustExclude = new HashSet<Point>(Arrays.asList(this.getPropagatorPos()));
+		mustExclude.addAll(Arrays.asList(additionalForbidden));
+		Set<Point> tryAgain = new HashSet<Point>(Arrays.asList(this.getPropagatorWantPos()));
+		Optional<Point> nextStep = agent.getRandomReachablePoint(mustExclude, tryAgain);
 		if (nextStep.isPresent()) {
 			this.setNextWantedPoint(nextStep.get());
 		} else {
-			nextStep = agent.getRandomNeighbourPoint(new HashSet<Point>(Arrays.asList(forbiddenPoints)));
+			nextStep = agent.getRandomNeighbourPoint(mustExclude, tryAgain);
 			// we assume that every point has a neighbour
 			this.setNextWantedPoint(nextStep.get());
 		}
@@ -354,10 +358,11 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
 		if (msg.getRequester().equals(this.getRequester())
 				&& msg.getPropagator().equals(this.getAgent().getName())) {
-			if (this.getTimeStamp() >= msg.getTimeStamp() && this.getNextWantedPoint().equals(msg.getWantPos())) {
-				this.sendDoConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+			if (this.getTimeStamp() >= msg.getTimeStamp() && 
+					msg.getConfirmPositions().contains(this.getNextWantedPoint())) {
+				this.sendDoConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), msg.getConfirmPositions());
 			} else {
-				this.sendNotConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), this.getNextWantedPoint());
+				this.sendNotConfirm(this.getRequester(), this.getAgent().getName(), this.getTimeStamp(), msg.getConfirmPositions());
 			}
 		}
 	}
