@@ -56,7 +56,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		
 		boolean wasAlreadyWaiting = this.isWaitingOnOther();
 		if (wasAlreadyWaiting) {
-			this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getStartTime());
+			this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getTimeLeft());
 		}
 		
 		if (this.hasMoved()) {
@@ -85,6 +85,7 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 			if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
 				// parcel has been delivered, so follow gradient field now
 				this.getAgent().getParcel().get().notifyDelivered(timeLapse);
+				this.sendRelease(this.getRequester(), this.getTimeStamp());
 				this.doStateTransition(Optional.of(new FollowGradientFieldState(this.getAgent(), this.getBackLogs())));
 			}
 			return;
@@ -134,7 +135,8 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		}
 		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
 				|| this.getNextWantedPoint().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos()))) {
+				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// propagator does not want our position
 			return;
 		}
@@ -158,11 +160,13 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 				this.doMoveAside(msg.getAtPos());
 				this.setPropagator(msg.getPropagator());
 				this.setStep(msg.getStep());
+				this.setTimeStamp(msg.getTimeStamp());
+				this.setHasMoved(false);
 			}
 			this.setWaitForList(msg.getWaitForList());
 			return;
 		}
-		if (this.trafficPriorityFunction(this.getRequester(), msg.getParcelWaitingSince())) {
+		if (AgentState.trafficPriorityFunction(this.getRequester(), msg.getRequester(), this.getParcelWaitTime(), msg.getParcelWaitingSince())) {
 			this.sendReject(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
 		} else {
 			// must now get out of the way for the new requester

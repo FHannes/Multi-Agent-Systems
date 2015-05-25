@@ -108,6 +108,19 @@ public abstract class AbstractRoadModel<T> extends GenericRoadModel {
    * @return The location.
    */
   protected abstract T point2LocObj(Point point);
+  
+  protected RoadUser getRoadUserOfLoc(T loc) {
+	  if (! objLocs.containsValue(loc)) {
+		  throw new IllegalArgumentException("objLocs must contain loc");
+	  }
+	  
+	  for (RoadUser user : objLocs.keySet()) {
+		  if (user instanceof MovingRoadUser && objLocs.get(user).equals(loc)) {
+			  return user;
+		  }
+	  }
+	  return null; // should never reach here
+  }
 
   @Override
   public MoveProgress followPath(MovingRoadUser object, Queue<Point> path,

@@ -321,6 +321,9 @@ public class AGVAgent extends Vehicle implements MovingRoadUser, FieldEmitter, C
 	}
 
 	public String toString() {
+		if (this.getPosition().isPresent()) {
+			return this.getName() + ": " + this.getPosition().get();
+		}
 		return this.getName();
 	}
 }

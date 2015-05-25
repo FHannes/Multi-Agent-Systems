@@ -95,7 +95,8 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 		}
 		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
 				|| this.getAgent().getNextPointOnPath().get().equals(msg.getWantPos())
-				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos()))) {
+				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// requester does not want this agent's position, so ignore
 			return;
 		}

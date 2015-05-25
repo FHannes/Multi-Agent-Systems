@@ -61,19 +61,20 @@ public class VisualSensor {
 			// check if a RoadUser occupies the point or occupies the connection between it and the previous point
 			// with respect to the point of view of the VisualSensorOwner
 			if (! toCheck.getFromPoint().equals(toCheck.getPoint()) &&
-					this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint(), this.getOwner())) {
+					(this.getRoadModel().hasRoadUserOnIgnoreFrom(toCheck.getFromPoint(), toCheck.getPoint(), this.getOwner())
+					|| this.getRoadModel().isOccupied(toCheck.getPoint(), this.getOwner()))) {
 				toReturn.add(toCheck.getPoint());
 				added = true;
 			}
+
+//			//check if a RoadUser is driving towards the point from the next point in the considered direction
+//			if (otherEnd.isPresent() && this.getRoadModel().hasRoadUserOnIgnoreFromAndTo(otherEnd.get(), toCheck.getPoint(), this.getOwner())) {
+//				if (! added) {
+//					toReturn.add(toCheck.getPoint());
+//				}
+//			}
 			
-			// check if a RoadUser is driving towards the point from the next point in the considered direction
 			Optional<Point> otherEnd = this.getConnectedPointInDirection(toCheck.getPoint(), toCheck.getDirection());
-			if (otherEnd.isPresent() && this.getRoadModel().hasRoadUserOnIgnoreFromAndTo(otherEnd.get(), toCheck.getPoint(), this.getOwner())) {
-				if (! added) {
-					toReturn.add(toCheck.getPoint());
-				}
-			}
-			
 			// if the visual range limit has not yet been reached and no RoadUser has been seen 
 			// (we assume that the VisualSensor cannot see past RoadUsers), enqueue otherEnd
 			if (! added && toCheck.getRange() < this.getVisualRange() && otherEnd.isPresent()) {

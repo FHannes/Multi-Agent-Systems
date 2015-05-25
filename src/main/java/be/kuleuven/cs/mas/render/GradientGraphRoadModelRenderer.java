@@ -15,15 +15,19 @@
  */
 package be.kuleuven.cs.mas.render;
 
+import be.kuleuven.cs.mas.GraphUtils;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
+
 import com.github.rinde.rinsim.core.model.ModelProvider;
 import com.github.rinde.rinsim.core.model.road.GraphRoadModel;
 import com.github.rinde.rinsim.geom.*;
 import com.github.rinde.rinsim.ui.renderers.*;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -84,6 +88,11 @@ public final class GradientGraphRoadModelRenderer implements CanvasRenderer {
         helper.setBackgroundSysCol(SWT.COLOR_GRAY);
         helper.drawArrow(f, t, ARROW_HEAD_SIZE, ARROW_HEAD_SIZE);
       }
+    }
+    for (int i = 0; i < GraphUtils.GRAPH_COLS; i++) {
+    	helper.drawString(Integer.toString(i * 4), new Point(i * 4, 0), true, 0, -25);
+    }for (int i = 0; i < GraphUtils.GRAPH_ROWS; i++) {
+    	helper.drawString(Integer.toString(i * 4), new Point(0, i*4), true, -25, 0);
     }
   }
 

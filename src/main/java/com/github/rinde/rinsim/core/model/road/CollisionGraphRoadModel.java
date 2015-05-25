@@ -141,15 +141,19 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel implements Li
 	}
 
 	@Override
-	protected void checkMoveValidity(Loc objLoc, Point nextHop) {
-		super.checkMoveValidity(objLoc, nextHop);
+	protected void checkMoveValidity(MovingRoadUser user, Loc objLoc, Point nextHop) {
+		super.checkMoveValidity(user, objLoc, nextHop);
 		// check if there is a vehicle driving in the opposite direction
 		if (!objLoc.equals(nextHop)) {
 			final Connection<?> conn = getConnection(objLoc, nextHop);
 			if (graph.hasConnection(conn.to(), conn.from())
-					&& connMap.containsKey(graph.getConnection(conn.to(), conn.from()))) {
+					&& this.isObstructedOn(user, objLoc, conn)) {
 				throw new DeadlockException(conn);
 			}
+//			if (graph.hasConnection(conn.to(), conn.from())
+//					&& connMap.containsKey(graph.getConnection(conn.to(), conn.from()))) {
+//				throw new DeadlockException(conn);
+//			}
 		}
 	}
 
@@ -186,6 +190,17 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel implements Li
 	 */
 	public boolean isOccupied(Point node) {
 		return occupiedNodes.containsValue(node);
+	}
+	
+	public boolean isOccupied(Point node, RoadUser ignore) {
+		for (RoadUser roadUser : occupiedNodes.keySet()) {
+			if (roadUser instanceof MovingRoadUser && ! ignore.equals(roadUser)) {
+				if (occupiedNodes.get(roadUser).contains(node)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -359,6 +374,34 @@ public class CollisionGraphRoadModel extends DynamicGraphRoadModel implements Li
 	
 	public boolean isObstructedOn(RoadUser roadUser, Connection connection) {
 		Direction obstructionDirection = Direction.determineDirectionOf(this.getPosition(roadUser), connection.to());
+		for (RoadUser user : occupiedNodes.keySet()) {
+			if (user instanceof MovingRoadUser && ! user.equals(roadUser)) {
+				if (occupiedNodes.get(user).contains(connection.to())) {
+					return true;
+				}
+			}
+		}
+//		if (posMap.containsKey(connection.to())) {
+//			for (RoadUser user : posMap.get(connection.to())) {
+//				if (user instanceof MovingRoadUser) {
+//					return true;
+//				}
+//			}
+//		}
+		for (RoadUser ele : connMap.get(connection)) {
+			if (ele.equals(roadUser)) {
+				continue;
+			}
+			if (obstructionDirection.equals(Direction.determineDirectionOf(this.getPosition(roadUser), this.getPosition(ele))))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean isObstructedOn(RoadUser roadUser, Point roadUserPoint, Connection connection) {
+		Direction obstructionDirection = Direction.determineDirectionOf(roadUserPoint, connection.to());
 		for (RoadUser user : occupiedNodes.keySet()) {
 			if (user instanceof MovingRoadUser && ! user.equals(roadUser)) {
 				if (occupiedNodes.get(user).contains(connection.to())) {

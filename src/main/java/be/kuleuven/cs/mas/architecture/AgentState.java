@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  */
 public abstract class AgentState {
 	
-	public static final long RESEND_TIMEOUT = 5000;
+	public static final long RESEND_TIMEOUT = 0;
 	protected static final Pattern NUM_PATTERN = Pattern.compile("\\d+");
 	protected static final String DEADLOCK_SEP = ",";
 	protected static final String POINTLIST_SEP = "%";
@@ -52,12 +52,7 @@ public abstract class AgentState {
 		try {
 			this.getAgent().followPath(timeLapse);
 		} catch (IllegalArgumentException e) {
-			if (this.getAgent().getPosition().get().equals(initialPosition)) {
-				// this method should never have been called in this case, so throw it
-				throw e;
-			} else {
-				this.handleExceptionDuringMove(timeLapse);
-			}
+			this.handleExceptionDuringMove(timeLapse);
 		}
 	}
 	
@@ -354,7 +349,7 @@ public abstract class AgentState {
 	protected abstract void processDoConfirmMessage(DoConfirmMessage msg);
 	
 	protected void sendDoConfirm(String requester, String propagator, long timeStamp, Set<Point> wantPos) {
-		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("please-confirm")
+		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("do-confirm")
 				.addField("requester", requester)
 				.addField("propagator", propagator)
 				.addField("timestamp", Long.toString(timeStamp))
@@ -450,7 +445,7 @@ public abstract class AgentState {
 			}
 
 			// equality can never occur since agents cannot have the same number
-			return Integer.parseInt(otherMatcher.group()) < Integer.parseInt(oneReqMatcher.group());
+			return Integer.parseInt(oneReqMatcher.group()) < Integer.parseInt(otherMatcher.group());
 		}
 
 	}

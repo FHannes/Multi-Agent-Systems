@@ -163,7 +163,7 @@ public class GraphRoadModel extends AbstractRoadModel<Loc> {
 		long timeLeft = time.getTimeLeft();
 		while (timeLeft > 0 && !path.isEmpty() && cont) {
 			try {
-				checkMoveValidity(tempLoc, path.peek());
+				checkMoveValidity(object, tempLoc, path.peek());
 				// speed in internal speed unit
 				final double speed = getMaxSpeed(object, tempLoc, path.peek());
 				checkState(speed >= 0,
@@ -229,7 +229,7 @@ public class GraphRoadModel extends AbstractRoadModel<Loc> {
 	 * @param nextHop The destination node.
 	 * @throws IllegalArgumentException if it the proposed move is invalid.
 	 */
-	protected void checkMoveValidity(Loc objLoc, Point nextHop) {
+	protected void checkMoveValidity(MovingRoadUser user, Loc objLoc, Point nextHop) {
 		// in case we start from an edge and our next destination is to go to
 		// the end of the current edge then its ok. Otherwise more checks are
 		// required..

@@ -33,13 +33,14 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	@Override
 	public void act(TimeLapse timeLapse) {
 
-		this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getStartTime());
+		this.setTimeOutCount(this.getTimeOutCount() + timeLapse.getTimeLeft());
 		// if there was a time-out, first try to move to the next wanted point
 		Set<Point> occupiedPoints = this.getAgent().getOccupiedPointsInVisualRange();
 		if (! occupiedPoints.contains(this.getNextWantedPoint())) {
 			// we can indeed move forward
 			this.doMoveForward(this.getAgent().getPosition().get(), timeLapse);
-			if (! this.getAgent().getNextPointOnPath().equals(this.getNextWantedPoint())) {
+			if (! this.getAgent().getNextPointOnPath().isPresent() ||
+					! this.getAgent().getNextPointOnPath().get().equals(this.getNextWantedPoint())) {
 				// move forward has succeeded
 				this.afterMoveForward(timeLapse);
 			}
@@ -160,7 +161,8 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		}
 		if (! (this.getAgent().getPosition().get().equals(msg.getWantPos())
 				|| this.getAgent().getRoadModel().occupiesPoint(this.getAgent(), msg.getWantPos())
-				|| this.getAgent().getNextPointOnPath().get().equals(msg.getWantPos()))) {
+				|| this.getAgent().getNextPointOnPath().get().equals(msg.getWantPos())
+				|| this.getAgent().getRoadModel().occupiesPointWithRespectTo(this.getAgent(), msg.getWantPos(), msg.getAtPos()))) {
 			// requester does not want our point
 			return;
 		}
@@ -232,7 +234,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	@Override
 	protected void processPleaseConfirmMessage(PleaseConfirmMessage msg) {
 		if (msg.getRequester().equals(this.getAgent().getName())
-				&& msg.getRequester().equals(this.getAgent().getName())) {
+				&& msg.getPropagator().equals(this.getAgent().getName())) {
 			if (msg.getConfirmPositions().contains(this.getNextWantedPoint())
 					&& this.getTimeStamp() >= msg.getTimeStamp()) {
 			this.sendDoConfirm(this.getAgent().getName(), this.getAgent().getName(), this.getTimeStamp(), msg.getConfirmPositions());
