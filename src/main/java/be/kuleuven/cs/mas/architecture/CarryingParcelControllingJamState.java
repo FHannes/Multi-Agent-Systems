@@ -102,10 +102,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	}
 
 	private void tryDeliverParcel(TimeLapse timeLapse) {
-		if (! (this.getAgent().getPDPModel().getParcelState(this.getAgent().getParcel().get()) == ParcelState.DELIVERING)) {
-			// we have not yet started delivering the parcel, so send the home-free message
-			this.sendHomeFree();
-		}
+		this.sendHomeFree();
 		this.getAgent().getPDPModel().deliver(this.getAgent(), this.getAgent().getParcel().get(), timeLapse);
 		if (! this.getAgent().getPDPModel().containerContains(this.getAgent(), this.getAgent().getParcel().get())) {
 			// parcel delivered, so start following the gradient field

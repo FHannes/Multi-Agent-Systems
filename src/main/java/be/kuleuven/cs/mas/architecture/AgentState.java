@@ -236,7 +236,6 @@ public abstract class AgentState {
 	protected void sendHomeFree() {
 		this.getAgent().sendMessage(this.getAgent().getMessageBuilder().addField("home-free")
 				.addField("requester", this.getAgent().getName()).build());
-		System.out.println("Home free sent!");
 	}
 	
 	protected static Optional<RejectMessage> parseRejectMessage(List<Field> contents) {

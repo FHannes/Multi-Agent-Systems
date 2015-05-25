@@ -55,6 +55,8 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 		} else {
 			// otherwise, move forward
 			try {
+				// possibly fixes bug due to home free messages that go missing
+				this.sendHomeFree();
 				this.doMoveForward(this.getAgent().getPosition().get(), timeLapse);
 			} catch (IllegalArgumentException e) {
 				System.err.println("Point to check was: " + toCheck);

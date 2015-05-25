@@ -84,10 +84,6 @@ public class FollowGradientFieldState extends AgentState {
 
 		Set<Point> occupied = getAgent().getOccupiedPointsInVisualRange();
 
-		if (! this.getAgent().getMostRecentPosition().equals(this.getAgent().getPosition().get())) {
-			// agent has started moving
-		}
-
 		if (! this.getNextSelectedPoint().isPresent() ||
 				(occupied.contains(this.getNextSelectedPoint().get()) && ! this.getNextRequestedPoint().isPresent() && ! this.getPotentialRequestedPoint().isPresent())) {
 			this.followGradientField(occupied);
@@ -113,6 +109,7 @@ public class FollowGradientFieldState extends AgentState {
 			if (this.getAgent().getPosition().get().equals(this.getNextSelectedPoint().get())) {
 				this.setNextSelectedPoint(Optional.absent());
 				this.setConfirmedPropagator(Optional.absent());
+				this.setNextRequestedPoint(Optional.absent());
 				if (! initialPosition.equals(this.getAgent().getPosition().get())) {
 					hasMoved = true;
 				}
@@ -136,10 +133,16 @@ public class FollowGradientFieldState extends AgentState {
 //				this.sendMoveAside(this.getRequester().get(), this.getWaitForListWithSelf(this.getConfirmedPropagator().get()), this.getTimeStamp(),
 //						this.getParcelWaitingSince(), this.getNextRequestedPoint().get(), this.getStep());
 				this.setTimeOutCount(0);
-			} else if (this.getNextSelectedPoint().isPresent()) {
+			} else if (this.getNextSelectedPoint().isPresent() && this.getRequester().isPresent()) {
 				this.setPotentialRequestedPoint(this.getNextSelectedPoint());
 				this.resendPleaseConfirm();
 			}
+		}
+		
+		if (! this.getRequester().isPresent() && this.getAllForbiddenPoints().isEmpty() && ! this.getNextRequestedPoint().isPresent()
+				&& ! this.getPotentialRequestedPoint().isPresent()) {
+			// possibly fixes bug due to home free messages that go missing
+			this.sendHomeFree();
 		}
 	}
 
@@ -258,6 +261,9 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		this.setRequester(Optional.absent());
+		this.setNextRequestedPoint(Optional.absent());
+		this.setPotentialRequestedPoint(Optional.absent());
+		this.setNumWaitingForConfirm(0);
 		this.clearForbiddenPoints();
 		this.getWaitForMap().clear();
 		this.setParcelWaitingSince(0);
@@ -274,16 +280,16 @@ public class FollowGradientFieldState extends AgentState {
 			return;
 		}
 		this.sendRelease(this.getRequester().get(), this.getTimeStamp()); // release all agents this agent (indirectly) caused to activate "get out of the way"
-		this.getPropagatorWantPositions().removeAll(msg.getPropagator());
-		if (this.getPropagatorWantPositions().isEmpty()) {
+//		this.getPropagatorWantPositions().removeAll(msg.getPropagator());
 			this.setNextRequestedPoint(Optional.absent());
 			this.setPotentialRequestedPoint(Optional.absent());
+			this.setNumWaitingForConfirm(0);
 			this.setRequester(Optional.absent());
 			this.setParcelWaitingSince(0);
 			this.setStep(0);
 			this.setTimeStamp(0);
 			this.getWaitForMap().clear();
-		}
+			this.clearForbiddenPoints();
 	}
 
 	@Override
