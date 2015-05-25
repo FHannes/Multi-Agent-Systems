@@ -89,10 +89,11 @@ public final class GradientGraphRoadModelRenderer implements CanvasRenderer {
         helper.drawArrow(f, t, ARROW_HEAD_SIZE, ARROW_HEAD_SIZE);
       }
     }
+    int factor = (int) GraphUtils.VEHICLE_LENGTH * 2;
     for (int i = 0; i < GraphUtils.GRAPH_COLS; i++) {
-    	helper.drawString(Integer.toString(i * 4), new Point(i * 4, 0), true, 0, -25);
+    	helper.drawString(Integer.toString(i * factor), new Point(i * factor, 0), true, 0, -25);
     }for (int i = 0; i < GraphUtils.GRAPH_ROWS; i++) {
-    	helper.drawString(Integer.toString(i * 4), new Point(0, i*4), true, -25, 0);
+    	helper.drawString(Integer.toString(i * factor), new Point(0, i * factor), true, -25, 0);
     }
   }
 
