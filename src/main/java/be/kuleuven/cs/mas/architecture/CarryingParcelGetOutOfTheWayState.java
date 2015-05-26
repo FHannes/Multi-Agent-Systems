@@ -142,7 +142,8 @@ public class CarryingParcelGetOutOfTheWayState extends CarryingParcelState {
 		}
 		if (handleDeadlock) { // if there is a deadlock, it can now be handled properly
 			this.sendRelease(this.getRequester(), this.getTimeStamp());
-			this.doMoveAside(this.getNextWantedPoint()); // try again, this time trying to move to a different point
+			this.doMoveAside();
+			// this.doMoveAside(this.getNextWantedPoint()); // try again, this time trying to move to a different point
 			// this will always work because only "get out of the way" agents at a junction will ever detect deadlock
 			// since the controller will detect it first in the other case
 			return;

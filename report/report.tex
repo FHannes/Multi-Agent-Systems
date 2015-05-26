@@ -1,0 +1,41 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage[colorlinks, allcolors=black]{hyperref}
+\usepackage{geometry}
+\geometry{tmargin=3cm, bmargin=2.2cm, lmargin=2.2cm, rmargin=2cm}
+\usepackage{todonotes} %Used for the figure placeholders
+\usepackage[space]{grffile}
+\usepackage[htt]{hyphenat}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{rotating}
+\usepackage{epstopdf}
+% option: outputdir=.mintedtmp
+\usepackage[outputdir=.mintedtmp]{minted}
+\usepackage{subcaption}
+\usepackage{url}
+\usepackage{float}
+
+\graphicspath{{./figures/}}
+
+\newcommand{\ttt}{\texttt}
+
+\begin{document}
+\input{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{./sections/introduction.tex}
+
+\input{./sections/design.tex}
+
+\input{./sections/experiments.tex}
+
+\input{./sections/conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

@@ -1,0 +1,137 @@
+\section{Design of the agents}\label{sec:agentdesign}
+As mentioned in section \ref{sec:intro}, there is a gradient field available upon which each agent can base its decision as to what do to next at each moment. The question therefore remains how to design the architecture of the agents. We have opted to use a \textbf{hybrid architecture} that uses concepts from the \textbf{InteRRaP agent architecture} \cite{muller2011agent}. The rest of this section is outlined as follows: in section \ref{sec:rinsimconf}, we discuss the use of RinSim; in section \ref{sec:agentarch}, we discuss the actual agent architecture.
+
+\subsection{Configuration of RinSim}\label{sec:rinsimconf}
+RinSim \cite{rinsim} offers several options as to how to structure the roads over which the vehicles drive. The model we have chosen represents the warehouse as a graph wherein agents cannot drive through each other (collisions are therefore forbidden). This choice has profound implications for the architecture of the agents, as explained in section \ref{sec:agentarch}. This graph is specified by a list of nodes and a specification of the connections between those nodes (these connections can be one-way or two-way; in the latter case, the connection is instead modelled as two one-way connections between the concerned nodes, one for each direction). RinSim does not allow agents to turn around if they are on a connection. However, we have made modifications to the code such that agents are able to do exactly that.
+
+\subsection{Agent architecture}\label{sec:agentarch}
+The configuration of RinSim specified in section \ref{sec:rinsimconf} does not allow agents to drive through each other. Therefore, there is a need for a protocol that allows the agents to give way to other agents, the ``traffic jam protocol'' specified in section \ref{sec:protocol}. This protocol is central to the architecture proposed in this section. The behaviour of the agent at each moment in time depends on the state it is in at that moment. It is assumed that the agent has access to the layout of the warehouse and can therefore always plan the shortest route between any two points. The state of the agent can be one of the following:
+\begin{enumerate}
+\item \textbf{Carrying parcel, no jam}: The agent is carrying a parcel and has not yet encountered another agent on the path to the parcel's destination.
+\item \textbf{Carrying parcel, controlling jam}: The agent is carrying a parcel and has previously encountered agents blocking the path to the parcel's destination. It is currently trying to get other agents to move out of the way such that it can continue on its planned path.
+\item \textbf{Carrying parcel, getting out of the way}: The agent is carrying a parcel and is getting out of the way another agent carrying a parcel. For example, the other agent's parcel waiting time is greater than that of this agent's parcel.
+\item \textbf{Following gradient field}: The agent is currently not carrying a parcel and therefore is following the gradient field until it has reached a parcel. It must still get out of the way of agents carrying a parcel that it obstructs.
+\end{enumerate}
+
+\subsubsection{The traffic jam protocol}\label{sec:protocol}
+Each state listed in section \ref{sec:agentarch} has its responsibilities with respect to the traffic jam protocol. The execution of the protocol heavily depends on messages exchanged between the agents. An assumption that simplifies the execution of the protocol is that all agents always receive a message sent by any other agent, regardless of where it is in the warehouse. The list of possible messages is as follows:
+\begin{enumerate}
+    \item \textbf{Move-aside message}: Sent out by:
+        \begin{itemize}
+            \item Agents in the \textbf{Carrying parcel, controlling jam} state that wants other agents to move out of the way.
+            \item Agents in the \textbf{Carrying parcel, getting out of the way} state that is moving out of the way for another agent but in turn finds itself blocked and therefore needs other agents to move out of the way.
+        \end{itemize}
+    The template for this message is as follows: \texttt{move-aside;requester=requester-name;propagator=propagator-name;wait-for=wait-for-list;timestamp=timestamp;parcel-waiting-since=timestamp;want-pos=position;at-pos=position;step=number}, where the meaning of the different fields is:
+        \begin{enumerate}
+            \item \texttt{requester}: The name of the agent that started the protocol
+            \item \texttt{propagator}: The name of the sender of this message. This distinction from the requester is necessary since an agent in the \textbf{Carrying parcel, getting out of the way} state may require other agents to move out of the way before it can itself successfully move out of the way.
+            \item \texttt{wait-for}: This is a list of propagators currently involved in an execution of the protocol. This allows the receiving agent to check for deadlocks by determining whether its own name is present in the list, in which case the protocol must backtrack.
+            \item \texttt{timestamp}: Uniquely identifies an instance of the protocol. This is necessary in order for an execution of the protocol to remain unaffected by older executions.
+            \item \texttt{parcel-waiting-since}: This is the moment in time when the requester's parcel entered the model. If an agent that is carrying a parcel receives a move-aside message, it will move out of the way if the requester's parcel has been waiting longer. If that is not the case, the message is ignored.
+            \item \texttt{want-pos}: The position the propagator wants to move to. This allows an agent to determine whether it is the addressee of this message.
+            \item \texttt{at-pos}: The position of the propagator at the time of sending. This lets the agent know that, if it decides to act upon this message, it may not select this position as position to move to in order to get out of the way since a deadlock would immediately occur as the agent would find itself blocked and thus send out its own move-aside message.
+            \item \texttt{step}: This is the number of times that the requester has successfully moved forward along its planned path. This allows the receiving agent to filter out move-aside messages it should no longer bother acting on since they are outdated.
+        \end{enumerate}
+    \item \textbf{Home-free message}: Sent out by
+        \begin{itemize}
+            \item Agents in the \textbf{Carrying parcel, controlling jam} state that wants to end an execution of the protocol
+        \end{itemize} 
+    The template for this message is as follows:
+    \texttt{home-free;requester=requester-name}, where \texttt{requester} is the name of the agent ending the execution of the protocol
+    \item \textbf{Release message}: Sent out by
+        \begin{itemize}
+            \item Agents in the \textbf{Carrying parcel, getting out of the way} state that want to release agents (indirectly) waiting on them from the current execution of the protocol
+            \item Agents in the \textbf{Following gradient field} state, for reasons similar to the above
+        \end{itemize}
+    The template for this message is as follows:
+    \texttt{release;requester=requester-name;propagator=propagator-name;timestamp=timestamp}, where the meaning of the different fields is:
+        \begin{enumerate}
+            \item \ttt{requester}: Agent that started the protocol
+            \item \ttt{propagator}: Name of the sender and the one that wants to release other agents
+            \item \ttt{timestamp}: Identifies the relevant execution of the protocol
+        \end{enumerate}
+    \item \textbf{Ack message}: Sent out by agents that have decided to act upon a move-aside message
+    The template for this message is as follows:
+    \texttt{ack;requester=requester-name;propagator=propagator-name;timestamp=timestamp}, where the meaning of the different fields is:
+        \begin{enumerate}
+            \item \ttt{requester}: Agent that started the protocol
+            \item \ttt{propagator}: The sender of the move-aside message this message acknowledges
+            \item \ttt{timestamp}: Identifies the relevant execution of the protocol
+        \end{enumerate}
+    \item \textbf{Reject message}: Sent out by agents that have decided not to act upon a move-aside message. The template is \ttt{reject;requester=requester-name;propagator=propagator-name;timestamp=timestamp} with meanings entirely analogous to those of the ack message.
+    \item \textbf{Please confirm message}: Sent out by agents in the \textbf{Following gradient field} state that want to verify that an execution of the protocol is still ongoing.
+    The template for this message is as follows;
+    \texttt{please-confirm;requester=requester-name;propagator=propagator-name;timestamp=timestamp;confirm-pos=position-list}, where the meaning of the different fields is:
+        \begin{enumerate}
+            \item \ttt{requester}: Agent that started the execution of the protocol in question
+            \item \ttt{propagator}: Agent that caused the sender of this message to participate in this execution of the protocol
+            \item \ttt{timestamp}: Identifies the execution of the protocol in question
+            \item \ttt{confirm-pos}: List of the positions the sender of this message currently occupies
+        \end{enumerate}
+    \item \textbf{Do confirm message}: Sent out by agents in response to a please confirm message that confirms the specified execution of the protocol is still ongoing. The template is \texttt{do-confirm;requester=requester-name;propagator=propagator-name;timestamp=timestamp;confirm-pos=position-list} with the meaning of the different fields entirely analogous of those of the please confirm message.
+    \item \textbf{Not confirm message}: Sent out by agents in response to a please confirm message that indicates that the specified execution of the protocol has already ended. The template is \texttt{do-confirm;requester=requester-name;propagator=propagator-name;timestamp=timestamp;confirm-pos=position-list} with the meaning of the different fields entirely analogous of those of the please confirm message and the do confirm message
+\end{enumerate}
+
+Armed with the above messages, we can now specify what exactly happens when an agent receives a message. We will do this for each agent state and message combination.
+
+\subsubsection*{Carrying parcel, no jam}
+\begin{itemize}
+    \item \textbf{Move-aside message}: if \ttt{requester} or \ttt{propagator} is equal to this agent's name, ignore; if this agent does not occupy \ttt{want-pos}, ignore; if the \ttt{parcel-wait-time} is earlier than this agent's parcel's arrival time, then send an ack message and change state to \textbf{Carrying parcel, getting out of the way}. If not, then send a reject message.
+    \item \textbf{Home-free message}: ignore since this agent is currently not participating in the protocol.
+    \item \textbf{Release message}: ignore since this agent is currently not participating in the protocol.
+    \item \textbf{Ack message}: ignore since this agent is currently not participating in the protocol.
+    \item \textbf{Reject message}: ignore since this agent is currently not participating in the protocol.
+    \item \textbf{PleaseConfirmMessage}: if both \ttt{requester} and \ttt{propagator} are both equal to this agent's name, then send a not confirm message with the same contents since this agent is currently not participating in the protocol.
+    \item \textbf{Do confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+    \item \textbf{Not confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+\end{itemize}
+
+\subsubsection*{Carrying parcel, controlling jam}
+\begin{itemize}
+    \item \textbf{Move-aside message}: if this agent is not currently occupying \ttt{want-pos}, ignore; if \ttt{requester} is equal to this agent's name, then a deadlock has occurred: resolve it by restarting the protocol (first send a home-free message, then resend the move-aside message); if \ttt{parcel-waiting-since} is earlier than this agent's parcel's arrival time, then send an ack message, end the execution of the protocol due to this agent by sending a home free message and change state to \textbf{Carrying parcel, get out of the way}.
+    \item \textbf{Home-free message}: ignore since this agent is running its own execution of the protocol.
+    \item \textbf{Release message}: ignore since this agent is running its own execution of the protocol.
+    \item \textbf{Ack message}: ignore if \ttt{requester} or \ttt{propagator} are not equal to this agent's name \ttt{timestamp} is smaller than the current time stamp. Reset the time-out counter.
+    \item \textbf{Reject message}: processed similarly to the ack message. Having reject messages makes the protocol more flexible with regards to possible changes in the future.
+    \item \textbf{PleaseConfirmMessage}: ignore if \ttt{requester} or \ttt{propagator} are not equal to this agent's name or if \ttt{timestamp} is smaller than the current time stamp. If the next point on this agent's path to its parcel's destination is among \ttt{confirm-pos}, then send a do confirm message; if not, send a not confirm message.
+    \item \textbf{Do confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+    \item \textbf{Not confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+\end{itemize}
+
+\subsubsection*{Carrying parcel, getting out of the way}
+\begin{itemize}
+    \item \textbf{Move-aside message}: if this agent is currently not occupying \ttt{want-pos}, ignore; if this agent's name is among \ttt{wait-for}, then resolve the deadlock by sending a release message and trying to move aside to a different point (still different from the position wanted by the agent this agent is moving out of the way for); if \ttt{requester} is equal to the requester that started the execution of the protocol this agent is currently involved in, then compare \ttt{step} to the last seen step: if it is equal and the agent has already successfully moved aside, or if \ttt{step} is greater then do another move aside; if neither condition is true, then send a reject message and do nothing. If \ttt{requester} is not equal, then compare \ttt{parcel-waiting-since} with the parcel arrival time of the requester that started the execution of the protocol this agent is currently involved in. If it is smaller, then join the execution of \ttt{requester}'s protocol; if it is greater, then send a reject message and do nothing.
+    \item \textbf{Home-free message}: if \ttt{requester} is equal to the requester that started the execution of the protocol this agent is currently involved in, then change state to \textbf{Carrying parcel, no jam}.
+    \item \textbf{Release message}: if \ttt{requester} is equal to the requester that started the execution of the protocol this agent is currently involved in and if \ttt{propagator} is equal to the propagator that triggered the state change to this state, then propagate the release message with this agent's name in the \ttt{propagator} field and change state to \textbf{Carrying parcel, no jam}.
+    \item \textbf{Ack message}: ignore if \ttt{requester} is not equal to the requester that started the execution of the protocol this agent is currently involved in or if \ttt{propagator} is not equal to the propagator that triggered the state change to this state, or if \ttt{timestamp} is smaller than the current time stamp. Otherwise, reset the time-out counter.
+    \item \textbf{Reject message}: processed similarly to the ack message. Having reject messages makes the protocol more flexible with regards to possible changes in the future.
+    \item \textbf{PleaseConfirmMessage}: ignore if \ttt{requester} is not equal to the requester that started the execution of the protocol this agent is currently involved in or if \ttt{propagator} is not equal to the propagator that triggered the state change to this state or if \ttt{timestamp} is smaller than the current time stamp. If the next point on this agent's path to its parcel's destination is among \ttt{confirm-pos}, then send a do confirm message; if not, send a not confirm message.
+    \item \textbf{Do confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+    \item \textbf{Not confirm message}: ignore since messages of this type only have meaning to agents currently in the \textbf{Following gradient field} state.
+\end{itemize}
+
+\subsubsection*{Following gradient field}
+\begin{itemize}
+    \item \textbf{Move-aside message}: if this agent is not currently occupying \ttt{want-pos}, then ignore; if \ttt{wait-for} contains this agent's name, then resolve the deadlock by sending a release message and trying to move to another point different from before; if it has previously seen a requester, \ttt{requester} is not equal to that requester and that requester's parcel's arrival time is smaller than \ttt{parcel-wait-time} then send a reject message and do nothing; if it has previously seen a requester, \ttt{requester} is equal to that requester and \ttt{step} is smaller than the current step, then do nothing; if it has previously seen a requester, \ttt{requester} is equal to that requester and \ttt{step} is greater than the current step, then remove all information currently associated with the execution of the requester's protocol; this must also happen if it has previously seen a requester and \ttt{requester} is not equal to the previously seen requester. If the logic has reached this point, then update the internal state with the information contained in the message.
+    \item \textbf{Home-free message}: if this agent has not previously seen a requester or the previously seen requester is not equal to \ttt{requester}, then ignore; otherwise clear all internal state.
+    \item \textbf{Release message}: if this agent has not previously seen a requester or the previously seen requester is not equal to \ttt{requester} or if \ttt{timestamp} is smaller than the current time stamp, then ignore; otherwise, send a release message and clear all internal state.
+    \item \textbf{Ack message}: always ignored in this version of the protocol.
+    \item \textbf{Reject message}: if this agent has not previously seen a requester or the previously seen requester is not equal to \ttt{requester} or if \ttt{propagator} is not equal to this agent's name, then ignore; otherwise, if this agent has previously sent a move-aside message, then select another point to move to according to the gradient field that is different from the point sent with that previous move-aside message.
+    \item \textbf{PleaseConfirmMessage}: if \ttt{propagator} is not equal to this agent's name, then ignore; if this agent has not previously seen a requester or the previously seen requester is not equal to \ttt{requester}, then send a not confirm message; if the current time stamp is greater than \ttt{timestamp} and \ttt{confirm-pos} contains the point this agent is currently trying to get to, then send a do confirm message.
+    \item \textbf{Do confirm message}: if this agent has not previously sent a please confirm message, then ignore; if the previously seen requester is not equal to \ttt{requester} or if the set of points currently occupied by this agent does not contain any of the points in \ttt{confirm-pos} or if \ttt{timestamp} is smaller than the current time stamp or if \ttt{propagator} is not among the previously seen propagators, then ignore. Otherwise, this agent has just received confirmation that it is still involved in a currently ongoing execution of the protocol and may thus send out the move-aside message it was planning to send.
+    \item \textbf{Not confirm message}: if this agent has not previously sent a please confirm message, then ignore; if the previously seen requester is not equal to \ttt{requester} or if the set of points currently occupied by this agent does not contain any of the points in \ttt{confirm-pos} or if \ttt{timestamp} is smaller than the current time stamp or if \ttt{propagator} is not among the previously seen propagators, then ignore. Register the fact that \ttt{propagator} has confirmed it does not want the point(s) occupied by this agent. If this means that this agent has received a not confirm message from all propagators it was expecting a confirmation from, then this means that this agent is no longer participating in an ongoing execution of the protocol and is thus free to follow the gradient field without any constraints.
+\end{itemize}
+
+Since the RinSim simulator gives each object the opportunity to act via ticks, the agent must do something each time it is allotted a tick. What follows is a description of which actions the agent takes in each of the states
+
+\begin{itemize}
+    \item \textbf{Carrying parcel, no jam}: try to move to the next point on the path towards this agent's parcel's destination. If the path is blocked, start the protocol, change state to \textbf{Carrying parcel, controlling jam} and send a move-aside message with the next point on the path as \ttt{want-pos}. If this agent's parcel's destination has been reached, deliver the parcel and change state to \textbf{Following gradient field}.
+    \item \textbf{Carrying parcel, controlling jam}: first, add the length of the tick to the time-out counter. First, try to move towards the next point on the path towards this agent's parcel's destination. If this agent's parcel's destination has been reached, delivery the parcel, send a home-free message and change state to \textbf{Following gradient field}. If the path was blocked and a time-out has occurred, resend the move-aside message with the next point on the path as \ttt{want-pos} and reset the time-out counter. If the move forward was successful and the parcel's destination has not yet been reached, increase the step by one, set the time stamp to the current time and reset the time-out counter. If no more obstacles are seen along the path to this agent's parcel's destination, then send a home-free message and set the state to \ttt{Carrying parcel, no jam}.
+    \item \textbf{Carrying parcel, getting out of the way}: if this agent has already successfully moved forward and has received no instruction to move out of the way again, then do nothing. If the point this agent has previously selected in order to get out of the way of the agent who triggered this state is not blocked, then move towards it. If that point has been successfully reached, then check if the currently reached point is not equal to the point wanted by the agent that triggered this state; if so, another move aside is required. If this agent's parcel's destination has been reached, then deliver the parcel, send a release message in order to release any agents (indirectly) waiting on this agent from the current execution of the protocol and change state to \textbf{Following gradient field}. If the agent could not move at this time and a time-out has occurred, resend the move-aside message with the previously selected point as \ttt{want-pos} and reset the time-out counter.
+    \item \textbf{Following gradient field}: If this agent has reached a parcel that has not yet been picked up, pick it up and change state to \ttt{Carrying parcel, no jam}. Otherwise, find the best reachable point along the gradient field. If there is such a point and that point is different from the point previously requested by this agent via a move-aside message, if any, then send a release message in order to release any agents (indirectly) waiting on this agent from the current execution of the protocol. If this agent has a point it has committed to moving towards (for example, it was previously selected when navigating along the gradient field or that point was requested via an earlier move-aside), then move towards it if it is not blocked. If a time-out has occurred and this agent has previously sent out please-confirm messages, then resend them and reset the time-out counter. If this agent could not move forward and it has previously seen a requester, then it sends a please-confirm message to all propagators it has previously seen, planning to send a move-aside message with the point this agent is committed to moving towards in the \ttt{want-pos} field if it receives confirmation that there is another agent waiting on this agent. It does not simply send the move-aside message immediately as it is possible that this agent might escape the traffic jam (it does not have a parcel that dictates its path) and might therefore send unnecessary move-aside messages if it finds itself blocked later.
+\end{itemize}
+
+There are still some corner cases that have to be considered in order to guarantee that the protocol works correctly, but they are not interesting to list here. If the reader is interested, it is possible to consult the source code accompanying this paper.
+
+\subsection{Comparison with InteRRaP}
+As mentioned in section \ref{sec:agentdesign}, we looked to InteRRaP \cite{muller2011agent} when designing the agent architecture. Indeed, it is possible to map elements of the architecture to elements of the InteRRaP architecture. Our agents have a world interface: they influence the world by emitting a repulsive field, by moving around and by manipulating parcels, they can communicate with other agents, and they can see obstacles. The behaviour-based component is mostly contained in the \textbf{Following gradient field} state: it receives the occupied points within the agent's vision and the gradient field readings as input. The behaviour-based component is also somewhat present in the other states when it concerns the capability of the agent to move forward if it is not blocked. It can also determine if it has reached a parcel that has not yet been picked up. The patterns of behaviour that are available to the agent are moving along the paths of the warehouse and manipulating parcels. The plan-based component corresponds to the capability of the agent to plan the shortest route between any two points in the warehouse; therefore, the local plans consist of the warehouse's layout and the path-planning algorithm it uses (in this case, the A* algorithm \cite{wiki:astar}). If the situation warrants executing a step of the protocol, the plan-based component instead yields control to the next layer higher up. The cooperation component corresponds to the capability of the agent to participate in the traffic jam protocol. The cooperation knowledge then consists of the different steps of the protocol and of all knowledge the agent has concerning currently ongoing executions of the protocol. It can also be seen that all these elements the behaviour-based component, the plan-based component and the cooperation component are vertically layered and that control passes up the chain and down the chain again, interfacing with the knowledge of the agent whenever necessary.
