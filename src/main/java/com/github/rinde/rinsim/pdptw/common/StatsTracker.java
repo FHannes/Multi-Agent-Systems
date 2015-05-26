@@ -61,7 +61,7 @@ import com.google.common.base.Optional;
  * @author Rinde van Lon
  *
  */
-final class StatsTracker extends AbstractModel<Object> {
+public final class StatsTracker extends AbstractModel<Object> {
 
   final EventDispatcher eventDispatcher;
   final TheListener theListener;
