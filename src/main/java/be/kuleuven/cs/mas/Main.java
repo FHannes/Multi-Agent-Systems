@@ -10,22 +10,22 @@ import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
 import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.comm.CommModel;
 import com.github.rinde.rinsim.core.model.pdp.*;
+import com.github.rinde.rinsim.core.model.rand.RandomModel;
+import com.github.rinde.rinsim.core.model.rand.RandomProvider;
+import com.github.rinde.rinsim.core.model.rand.RandomUser;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
 import org.apache.commons.math3.random.RandomGenerator;
-import org.apache.commons.math3.random.RandomGeneratorFactory;
 
-import java.util.Random;
-
-public class Main {
+public class Main implements RandomUser {
 
     public static final int AGENTS = 20;
     public static final int PARCELS = 25;
 
-    private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
+    private RandomGenerator rng;
 
     private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
@@ -33,6 +33,7 @@ public class Main {
     private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final ParcelFactory parcelFactory;
 
+    private final RandomModel rndModel;
     private final CommModel commModel;
     private final PDPModel pdpModel;
     private final RoadModel roadModel;
@@ -40,11 +41,14 @@ public class Main {
     private final Simulator sim;
 
     public Main() {
+        rndModel = RandomModel.create(123);
         commModel = CommModel.builder().build();
         pdpModel = DefaultPDPModel.create();
         roadModel = CollisionGraphRoadModel.builder(GraphUtils.createGraph())
                 .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
                 .build();
+
+        rndModel.register(this);
 
         agentFactory = new AgentFactory(rng, agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
                 GraphUtils.getSpawnSites());
@@ -52,6 +56,7 @@ public class Main {
                 GraphUtils.getDropOffSites());
 
         sim = Simulator.builder()
+                .addModel(rndModel)
                 .addModel(commModel)
                 .addModel(pdpModel)
                 .addModel(roadModel)
@@ -90,6 +95,11 @@ public class Main {
         Main main = new Main();
         main.populate();
         main.run();
+    }
+
+    @Override
+    public void setRandomGenerator(RandomProvider provider) {
+        rng = provider.masterInstance();
     }
 
 }
