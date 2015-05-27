@@ -4,6 +4,7 @@ import be.kuleuven.cs.mas.parcel.ParcelObserver;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public abstract class ParcelTracker implements ParcelObserver {
@@ -25,6 +26,10 @@ public abstract class ParcelTracker implements ParcelObserver {
         if (delivered >= DELIVERY_TRESHOLD) {
             deliveryTresholdReached();
         }
+    }
+
+    public Iterator<TimeAwareParcel> iterator() {
+        return parcels.iterator();
     }
 
     public abstract void deliveryTresholdReached();

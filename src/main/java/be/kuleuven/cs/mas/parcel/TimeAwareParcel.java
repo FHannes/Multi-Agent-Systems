@@ -56,7 +56,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		return this.pdpModel;
 	}
 	
-	private boolean isDelivered() {
+	public boolean isDelivered() {
 		return this.delivered;
 	}
 	

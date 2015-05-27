@@ -64,6 +64,15 @@ public class Main {
             @Override
             public void deliveryTresholdReached() {
                 sim.stop();
+
+                parcelTracker.iterator().forEachRemaining(p -> {
+                    if (p.isDelivered()) {
+                        long timeToPickup = p.getPickupTime() - p.getScheduleTime();
+                        long timeToDelivery = p.getDeliveryTime() - p.getScheduleTime();
+                        long timeOnRoute = p.getDeliveryTime() - p.getPickupTime();
+                        System.out.println(String.format("%d %d %d", timeToPickup, timeToDelivery, timeOnRoute));
+                    }
+                });
             }
         };
 
