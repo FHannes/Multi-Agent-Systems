@@ -12,8 +12,6 @@ import com.github.rinde.rinsim.geom.Connection;
 import com.github.rinde.rinsim.geom.ConnectionData;
 import com.github.rinde.rinsim.geom.Graph;
 import com.github.rinde.rinsim.geom.Point;
-import com.github.rinde.rinsim.util.StochasticSupplier;
-import com.github.rinde.rinsim.util.StochasticSuppliers;
 
 import javax.annotation.Nullable;
 
@@ -116,15 +114,6 @@ public class GradientModel extends AbstractModel<FieldEmitter> implements ModelR
         roadModel = mp.tryGetModel(CollisionGraphRoadModel.class);
         graph = mp.getModel(CollisionGraphRoadModel.class).getGraph();
         graphCrawler = new GraphCrawler(graph);
-    }
-
-    static StochasticSupplier<GradientModel> supplier() {
-        return new StochasticSuppliers.AbstractStochasticSupplier<GradientModel>() {
-            @Override
-            public GradientModel get(long seed) {
-                return new GradientModel();
-            }
-        };
     }
 
 }
