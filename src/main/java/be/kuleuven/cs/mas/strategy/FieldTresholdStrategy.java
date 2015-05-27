@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.strategy;
 
-public class FieldTresholdStrategy extends FieldStrategy {
+class FieldTresholdStrategy extends FieldStrategy {
 
     private long treshold;
     private double baseStrength;
@@ -15,6 +15,11 @@ public class FieldTresholdStrategy extends FieldStrategy {
     @Override
     public double calculateFieldStrength(long elapsed) {
         return elapsed >= treshold ? priorityStrength : baseStrength;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("treshold;%d;%.2f;%.2f", treshold, baseStrength, priorityStrength);
     }
 
 }

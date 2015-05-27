@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.strategy;
 
-public class ConstantValueStrategy extends FieldStrategy {
+class ConstantValueStrategy extends FieldStrategy {
 
     private double strength;
 
@@ -11,6 +11,11 @@ public class ConstantValueStrategy extends FieldStrategy {
     @Override
     public double calculateFieldStrength(long elapsed) {
         return strength;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("constant;%.2f", strength);
     }
 
 }

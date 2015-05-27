@@ -8,7 +8,7 @@ import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.render.GradientGraphRoadModelRenderer;
 import be.kuleuven.cs.mas.stat.ParcelTracker;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
-import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
+import be.kuleuven.cs.mas.strategy.StrategyFactory;
 import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.comm.CommModel;
 import com.github.rinde.rinsim.core.model.pdp.*;
@@ -31,10 +31,8 @@ public class Main {
 
     private final String fileOut;
 
-    private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
 
-    private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final ParcelFactory parcelFactory;
 
     private ParcelScheduler parcelScheduler;
@@ -47,7 +45,7 @@ public class Main {
 
     private final Simulator sim;
 
-    public Main(long seed, int treshold, String fileOut) {
+    public Main(long seed, int treshold, String fileOut, FieldStrategy agentFieldStrategy, FieldStrategy parcelFieldStrategy) {
         this.fileOut = fileOut;
 
         rndModel = RandomModel.create(seed);
@@ -142,6 +140,8 @@ public class Main {
         options.addOption("seed", true, "The random seed for the simulation.");
         options.addOption("treshold", true, "The parcel delivery treshold for the experiment.");
         options.addOption("output", true, "The output file for the simulation results.");
+        options.addOption("agent", true, "The strategy used for the agent's gradient field.");
+        options.addOption("parcel", true, "The strategy used for the parcel's gradient field.");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cl = parser.parse(options, args);
@@ -165,11 +165,27 @@ public class Main {
             fileOut = cl.getOptionValue("output");
         }
 
+        StrategyFactory strategyFactory = new StrategyFactory();
+
+        FieldStrategy agentFieldStrategy;
+        if (!cl.hasOption("agent") || (agentFieldStrategy =
+                strategyFactory.makeFromString(cl.getOptionValue("agent"))) == null) {
+            agentFieldStrategy = strategyFactory.makeConstantStrategy(0.25D);
+        }
+
+        FieldStrategy parcelFieldStrategy;
+        if (!cl.hasOption("parcel") || (parcelFieldStrategy =
+                strategyFactory.makeFromString(cl.getOptionValue("parcel"))) == null) {
+            parcelFieldStrategy = strategyFactory.makeConstantStrategy(1.0D);
+        }
+
         System.out.printf("Seed: %d\n", seed);
         System.out.printf("Parcel treshold: %d\n", treshold);
         System.out.printf("Output file: %s\n", fileOut);
+        System.out.printf("Agent strategy: %s\n", agentFieldStrategy.toString());
+        System.out.printf("Parcel strategy: %s\n", parcelFieldStrategy.toString());
 
-        Main main = new Main(seed, treshold, fileOut);
+        Main main = new Main(seed, treshold, fileOut, agentFieldStrategy, parcelFieldStrategy);
         main.populate();
         main.run();
     }

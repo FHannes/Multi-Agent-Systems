@@ -1,6 +1,6 @@
 package be.kuleuven.cs.mas.strategy;
 
-public class FieldTimeStrategy extends FieldStrategy {
+class FieldTimeStrategy extends FieldStrategy {
 
     private long timeUnit;
 
@@ -18,6 +18,11 @@ public class FieldTimeStrategy extends FieldStrategy {
     @Override
     public double calculateFieldStrength(long elapsed) {
         return 1.0D + elapsed / (double) timeUnit;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("time;%d", timeUnit);
     }
 
 }
