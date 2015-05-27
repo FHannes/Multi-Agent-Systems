@@ -19,6 +19,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 
 	private long scheduleTime;
 	private long currentTime;
+	private long pickupTime;
 	private long deliveryTime;
 	private Optional<RoadModel> roadModel;
 	private Optional<PDPModel> pdpModel;
@@ -82,6 +83,10 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		return currentTime - getScheduleTime();
 	}
 
+	public long getPickupTime() {
+		return pickupTime;
+	}
+
 	public long getDeliveryTime() {
 		return deliveryTime;
 	}
@@ -118,9 +123,10 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	/**
 	 * To be called when the parcel is picked up by an {@link AGVAgent}.
 	 */
-	public void notifyPickup() {
+	public void notifyPickup(TimeLapse timeLapse) {
 		position = Optional.absent();
 		gradientModel.unregister(this);
+		pickupTime = timeLapse.getEndTime();
 	}
 
 	@Override

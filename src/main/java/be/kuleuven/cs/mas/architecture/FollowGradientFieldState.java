@@ -71,7 +71,7 @@ public class FollowGradientFieldState extends AgentState {
 		ImmutableSet<Parcel> parcels = getAgent().getPDPModel().getContents(getAgent());
 		if (!parcels.isEmpty()) {
 			TimeAwareParcel parcel = (TimeAwareParcel) parcels.stream().findFirst().get();
-			parcel.notifyPickup();
+			parcel.notifyPickup(timeLapse);
 			// expand backlogs
 			List<ReleaseBacklog> backlogs = this.getBackLogs();
 			if (this.getRequester().isPresent()) {
