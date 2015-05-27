@@ -47,7 +47,7 @@ public class Main {
 
     private final Simulator sim;
 
-    public Main(long seed, String fileOut) {
+    public Main(long seed, int treshold, String fileOut) {
         this.fileOut = fileOut;
 
         rndModel = RandomModel.create(seed);
@@ -70,7 +70,7 @@ public class Main {
                 .addModel(new GradientModel())
                 .build();
 
-        parcelTracker = new ParcelTracker() {
+        parcelTracker = new ParcelTracker(treshold) {
             @Override
             public void deliveryTresholdReached() {
                 sim.stop();
@@ -138,18 +138,38 @@ public class Main {
     public static void main(String[] args) throws ParseException {
         Options options = new Options();
         options.addOption("seed", true, "The random seed for the simulation.");
+        options.addOption("treshold", true, "The parcel delivery treshold for the experiment.");
         options.addOption("output", true, "The output file for the simulation results.");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cl = parser.parse(options, args);
 
-        if (cl.hasOption("seed") && cl.hasOption("output")) {
-            Main main = new Main(Long.parseLong(cl.getOptionValue("seed")), cl.getOptionValue("output"));
-            main.populate();
-            main.run();
-        } else {
-            System.out.println("Missing parameters!");
+        long seed = 123;
+        if (cl.hasOption("seed")) {
+            try {
+                seed = Long.parseLong(cl.getOptionValue("seed"));
+            } catch (NumberFormatException e) { }
         }
+
+        int treshold = 100;
+        if (cl.hasOption("treshold")) {
+            try {
+                treshold = Integer.parseInt(cl.getOptionValue("treshold"));
+            } catch (NumberFormatException e) { }
+        }
+
+        String fileOut = "output.txt";
+        if (cl.hasOption("output")) {
+            fileOut = cl.getOptionValue("output");
+        }
+
+        System.out.printf("Seed: %d\n", seed);
+        System.out.printf("Parcel treshold: %d\n", treshold);
+        System.out.printf("Output file: %s\n", fileOut);
+
+        Main main = new Main(seed, treshold, fileOut);
+        main.populate();
+        main.run();
     }
 
 }

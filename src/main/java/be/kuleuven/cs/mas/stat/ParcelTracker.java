@@ -9,10 +9,14 @@ import java.util.Set;
 
 public abstract class ParcelTracker implements ParcelObserver {
 
-    public static final int DELIVERY_TRESHOLD = 100;
+    private int treshold;
 
     private Set<TimeAwareParcel> parcels = new HashSet<>();
     private int delivered = 0;
+
+    public ParcelTracker(int treshold) {
+        this.treshold = treshold;
+    }
 
     public void track(TimeAwareParcel parcel) {
         parcels.add(parcel);
@@ -23,7 +27,7 @@ public abstract class ParcelTracker implements ParcelObserver {
     public void parcelDelivered(TimeAwareParcel parcel) {
         delivered++;
 
-        if (delivered >= DELIVERY_TRESHOLD) {
+        if (delivered >= treshold) {
             deliveryTresholdReached();
         }
     }
