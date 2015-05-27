@@ -75,10 +75,12 @@ public class Main {
             public void deliveryTresholdReached() {
                 sim.stop();
 
+                System.out.println("Ran for " + sim.getCurrentTime() + "ms");
+
                 try {
                     BufferedWriter fileWriter = new BufferedWriter(new FileWriter(fileOut));
                     try {
-                        fileWriter.write("Ran for " + sim.getCurrentTime() + "ms");
+                        fileWriter.write("timeToPickup timeToDelivery timeOnRoute");
                         fileWriter.newLine();
 
                         Iterator<TimeAwareParcel> it = parcelTracker.iterator();
