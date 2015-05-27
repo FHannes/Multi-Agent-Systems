@@ -18,10 +18,18 @@ import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
+import org.apache.commons.cli.*;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Iterator;
 
 public class Main {
 
     public static final int AGENTS = 20;
+
+    private final String fileOut;
 
     private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
@@ -39,8 +47,10 @@ public class Main {
 
     private final Simulator sim;
 
-    public Main() {
-        rndModel = RandomModel.create(123);
+    public Main(long seed, String fileOut) {
+        this.fileOut = fileOut;
+
+        rndModel = RandomModel.create(seed);
         commModel = CommModel.builder().build();
         pdpModel = DefaultPDPModel.create();
         roadModel = CollisionGraphRoadModel.builder(GraphUtils.createGraph())
@@ -65,14 +75,29 @@ public class Main {
             public void deliveryTresholdReached() {
                 sim.stop();
 
-                parcelTracker.iterator().forEachRemaining(p -> {
-                    if (p.isDelivered()) {
-                        long timeToPickup = p.getPickupTime() - p.getScheduleTime();
-                        long timeToDelivery = p.getDeliveryTime() - p.getScheduleTime();
-                        long timeOnRoute = p.getDeliveryTime() - p.getPickupTime();
-                        System.out.println(String.format("%d %d %d", timeToPickup, timeToDelivery, timeOnRoute));
+                try {
+                    BufferedWriter fileWriter = new BufferedWriter(new FileWriter(fileOut));
+                    try {
+                        fileWriter.write("Ran for " + sim.getCurrentTime() + "ms");
+                        fileWriter.newLine();
+
+                        Iterator<TimeAwareParcel> it = parcelTracker.iterator();
+                        while (it.hasNext()) {
+                            TimeAwareParcel p = it.next();
+                            if (p.isDelivered()) {
+                                long timeToPickup = p.getPickupTime() - p.getScheduleTime();
+                                long timeToDelivery = p.getDeliveryTime() - p.getScheduleTime();
+                                long timeOnRoute = p.getDeliveryTime() - p.getPickupTime();
+                                fileWriter.write(String.format("%d %d %d", timeToPickup, timeToDelivery, timeOnRoute));
+                                fileWriter.newLine();
+                            }
+                        }
+                    } finally {
+                        fileWriter.close();
                     }
-                });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         };
 
@@ -110,10 +135,21 @@ public class Main {
                 .show();
     }
 
-    public static void main(String[] args) {
-        Main main = new Main();
-        main.populate();
-        main.run();
+    public static void main(String[] args) throws ParseException {
+        Options options = new Options();
+        options.addOption("seed", true, "The random seed for the simulation.");
+        options.addOption("output", true, "The output file for the simulation results.");
+
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cl = parser.parse(options, args);
+
+        if (cl.hasOption("seed") && cl.hasOption("output")) {
+            Main main = new Main(Long.parseLong(cl.getOptionValue("seed")), cl.getOptionValue("output"));
+            main.populate();
+            main.run();
+        } else {
+            System.out.println("Missing parameters!");
+        }
     }
 
 }
