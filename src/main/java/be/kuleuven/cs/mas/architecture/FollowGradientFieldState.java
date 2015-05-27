@@ -241,6 +241,15 @@ public class FollowGradientFieldState extends AgentState {
 		this.getPropagatorWantPositions().put(msg.getPropagator(), msg.getWantPos());
 		this.setTimeStamp(msg.getTimeStamp());
 		this.sendAck(msg.getRequester(), msg.getPropagator(), msg.getTimeStamp());
+		if (this.getNextSelectedPoint().isPresent() && this.getPropagatorPositions().values().contains(this.getNextSelectedPoint().get())) {
+			this.setNextSelectedPoint(Optional.absent());
+		}
+		if (this.getNextRequestedPoint().isPresent() && this.getPropagatorPositions().values().contains(this.getNextRequestedPoint().get())) {
+			this.setNextRequestedPoint(Optional.absent());
+		}
+		if (this.getPotentialRequestedPoint().isPresent() && this.getPropagatorPositions().values().contains(this.getPotentialRequestedPoint().get())) {
+			this.setPotentialRequestedPoint(Optional.absent());
+		}
 	}
 
 	protected void processRejectMessage(RejectMessage msg) {
