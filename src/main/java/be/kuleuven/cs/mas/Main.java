@@ -1,17 +1,19 @@
 package be.kuleuven.cs.mas;
 
 import be.kuleuven.cs.mas.agent.AgentFactory;
-import be.kuleuven.cs.mas.gradientfield.GradientModel;
+import be.kuleuven.cs.mas.gradientfield.GFConfig;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.render.GradientGraphRoadModelRenderer;
+import be.kuleuven.cs.mas.scenario.GFObjFunc;
+import be.kuleuven.cs.mas.scenario.GradientScenario;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
-import com.github.rinde.rinsim.core.Simulator;
-import com.github.rinde.rinsim.core.model.comm.CommModel;
-import com.github.rinde.rinsim.core.model.pdp.*;
-import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
-import com.github.rinde.rinsim.core.model.road.RoadModel;
+import com.github.rinde.rinsim.experiment.Experiment;
+import com.github.rinde.rinsim.experiment.MASConfiguration;
+import com.github.rinde.rinsim.pdptw.common.ObjectiveFunction;
+import com.github.rinde.rinsim.scenario.Scenario;
+import com.github.rinde.rinsim.scenario.ScenarioController;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
@@ -22,55 +24,20 @@ import java.util.Random;
 
 public class Main {
 
-    public static final int AGENTS = 20;
-    public static final int PARCELS = 25;
-
-    private final RandomGenerator rng = RandomGeneratorFactory.createRandomGenerator(new Random());
-
     private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
 
     private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final ParcelFactory parcelFactory;
 
-    private final CommModel commModel;
-    private final PDPModel pdpModel;
-    private final RoadModel roadModel;
+    private final ScenarioController.UICreator uic;
 
-    private final Simulator sim;
+    private final MASConfiguration config;
+    private final Scenario scenario;
+    private final ObjectiveFunction objFunc;
 
     public Main() {
-        commModel = CommModel.builder().build();
-        pdpModel = DefaultPDPModel.create();
-        roadModel = CollisionGraphRoadModel.builder(GraphUtils.createGraph())
-                .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
-                .build();
-
-        agentFactory = new AgentFactory(rng, agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
-                GraphUtils.getSpawnSites());
-        parcelFactory = new ParcelFactory(rng, parcelFieldStrategy, GraphUtils.getShelfSites(),
-                GraphUtils.getDropOffSites());
-
-        sim = Simulator.builder()
-                .addModel(commModel)
-                .addModel(pdpModel)
-                .addModel(roadModel)
-                .addModel(new GradientModel())
-                .build();
-    }
-
-    public void populate() {
-        for (int i = 0; i < AGENTS; i++) {
-            sim.register(agentFactory.makeAgent());
-        }
-
-        for (int i = 0; i < PARCELS; i++) {
-            sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
-        }
-    }
-
-    public void run() {
-        View.create(sim)
+        uic = (sim) -> View.create(sim)
                 .with(GradientGraphRoadModelRenderer.builder()
                                 .setMargin((int) GraphUtils.VEHICLE_LENGTH)
                                 .showNodes()
@@ -82,13 +49,31 @@ public class Main {
                 .with(AGVRenderer.builder()
                                 .useDifferentColorsForVehicles()
                 )
-                .setResolution(1000, 1000)
-                .show();
+                .setResolution(1000, 1000).show();
+
+        agentFactory = new AgentFactory(agentFieldStrategy, GraphUtils.VISUAL_RANGE,
+                GraphUtils.getSpawnSites());
+        parcelFactory = new ParcelFactory( parcelFieldStrategy, GraphUtils.getShelfSites(),
+                GraphUtils.getDropOffSites());
+
+        config = new GFConfig(agentFactory, parcelFactory);
+        scenario = new GradientScenario();
+        objFunc = new GFObjFunc();
+    }
+
+    public void run() {
+        Experiment.build(objFunc)
+                .withRandomSeed(123) // TODO: Use same seed for all rng
+                .withThreads(1)
+                .addConfiguration(config)
+                .addScenario(scenario)
+                .showGui(uic)
+                .repeat(1)
+                .perform();
     }
 
     public static void main(String[] args) {
         Main main = new Main();
-        main.populate();
         main.run();
     }
 

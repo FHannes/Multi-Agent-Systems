@@ -5,6 +5,7 @@ import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.Model;
 import com.github.rinde.rinsim.core.model.comm.CommModel;
 import com.github.rinde.rinsim.core.model.pdp.TimeWindowPolicy;
+import com.github.rinde.rinsim.core.model.rand.RandomModel;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
 import com.github.rinde.rinsim.pdptw.common.DynamicPDPTWProblem;
 import com.github.rinde.rinsim.pdptw.common.StatisticsDTO;
@@ -24,9 +25,12 @@ import javax.measure.unit.Unit;
 
 public class GradientScenario extends Scenario {
 
+    private int instanceID;
+
     @Override
     public ImmutableList<? extends Supplier<? extends Model<?>>> getModelSuppliers() {
         return ImmutableList.<Supplier<? extends Model<?>>> builder()
+                .add(() -> RandomModel.create())
                 .add(() -> CommModel.builder().build())
                 .add(() -> CollisionGraphRoadModel.builder(GraphUtils.createGraph())
                         .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
@@ -73,12 +77,12 @@ public class GradientScenario extends Scenario {
 
     @Override
     public ProblemClass getProblemClass() {
-        return null;
+        return GFProblemClass.DEFAULT;
     }
 
     @Override
     public String getProblemInstanceId() {
-        return null;
+        return Integer.toString(instanceID);
     }
 
 }

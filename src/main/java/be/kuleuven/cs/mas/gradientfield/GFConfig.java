@@ -11,12 +11,12 @@ import com.github.rinde.rinsim.util.StochasticSupplier;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
-public class GradientFieldConfiguration extends DefaultMASConfiguration {
+public class GFConfig extends DefaultMASConfiguration {
 
     private AgentFactory agentFactory;
     private ParcelFactory parcelFactory;
 
-    public GradientFieldConfiguration(AgentFactory agentFactory, ParcelFactory parcelFactory) {
+    public GFConfig(AgentFactory agentFactory, ParcelFactory parcelFactory) {
         this.agentFactory = agentFactory;
         this.parcelFactory = parcelFactory;
     }
@@ -28,12 +28,12 @@ public class GradientFieldConfiguration extends DefaultMASConfiguration {
 
     @Override
     public DynamicPDPTWProblem.Creator<AddVehicleEvent> getVehicleCreator() {
-        return (sim, event) -> sim.register(agentFactory.makeAgent());
+        return (sim, event) -> sim.register(agentFactory.makeAgent(sim));
     }
 
     @Override
     public Optional<? extends DynamicPDPTWProblem.Creator<AddParcelEvent>> getParcelCreator() {
-        return Optional.of((sim, event) -> sim.register(parcelFactory.makeParcel(sim.getCurrentTime())));
+        return Optional.of((sim, event) -> sim.register(parcelFactory.makeParcel(sim, sim.getCurrentTime())));
     }
 
 }
