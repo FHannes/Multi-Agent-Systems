@@ -3,7 +3,6 @@ package be.kuleuven.cs.mas.architecture;
 import be.kuleuven.cs.mas.agent.AGVAgent;
 
 import com.github.rinde.rinsim.core.TimeLapse;
-import com.github.rinde.rinsim.core.model.pdp.PDPModel.ParcelState;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
@@ -55,7 +54,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 		if (this.timeOutOccurred()) {
 			// resend move-aside
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
-					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+					this.getAgent().getParcel().get().getScheduleTime(), this.getNextWantedPoint(), this.getStep());
 			this.setTimeOutCount(0);
 		}
 	}
@@ -79,7 +78,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
 		this.afterMoveForward(timeLapse);
 		this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
-				this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+				this.getAgent().getParcel().get().getScheduleTime(), this.getNextWantedPoint(), this.getStep());
 		this.setTimeOutCount(0);
 	}
 
@@ -167,7 +166,7 @@ public class CarryingParcelControllingJamState extends CarryingParcelState {
 			// deadlock has occurred, restart protocol
 			this.sendHomeFree();
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()), this.getTimeStamp(),
-					this.getAgent().getParcel().get().getWaitingSince(), this.getNextWantedPoint(), this.getStep());
+					this.getAgent().getParcel().get().getScheduleTime(), this.getNextWantedPoint(), this.getStep());
 			return;
 		}
 		if (this.trafficPriorityFunction(msg.getRequester(), msg.getParcelWaitingSince())) {

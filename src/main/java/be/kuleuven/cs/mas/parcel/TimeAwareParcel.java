@@ -17,8 +17,9 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 
 	private FieldStrategy fieldStrategy;
 
-	private long waitingSince;
+	private long scheduleTime;
 	private long currentTime;
+	private long deliveryTime;
 	private Optional<RoadModel> roadModel;
 	private Optional<PDPModel> pdpModel;
 	private boolean delivered = false;
@@ -31,7 +32,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 				pMagnitude);
 		this.fieldStrategy = fieldStrategy;
 		setPosition(startPosition);
-		this.waitingSince = currentTime;
+		this.scheduleTime = currentTime;
 		this.currentTime = currentTime;
 	}
 
@@ -67,8 +68,8 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		// TODO write relevant variables to experiment result 
 	}
 	
-	public long getWaitingSince() {
-		return this.waitingSince;
+	public long getScheduleTime() {
+		return this.scheduleTime;
 	}
 
 	/**
@@ -77,7 +78,11 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	 * @return The elapsed time in milliseconds.
 	 */
 	public long getElapsedTime() {
-		return currentTime - getWaitingSince();
+		return currentTime - getScheduleTime();
+	}
+
+	public long getDeliveryTime() {
+		return deliveryTime;
 	}
 
 	protected void setPosition(Point position) {
@@ -115,6 +120,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	public void notifyPickup() {
 		position = Optional.absent();
 		gradientModel.unregister(this);
+		deliveryTime = currentTime;
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import be.kuleuven.cs.mas.agent.AGVAgent;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 
 import com.github.rinde.rinsim.core.TimeLapse;
-import com.github.rinde.rinsim.core.model.road.DeadlockException;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
 
@@ -49,7 +48,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 			System.out.println("Protocol started by " + this.getAgent().getName());
 			// we have a traffic jam, so begin protocol
 			this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
-					timeLapse.getTime(), this.getAgent().getParcel().get().getWaitingSince(),
+					timeLapse.getTime(), this.getAgent().getParcel().get().getScheduleTime(),
 					this.getAgent().getNextPointOnPath().get(), 0);
 			this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
 		} else {
@@ -81,7 +80,7 @@ public class CarryingParcelNoJamState extends CarryingParcelState {
 	protected void handleExceptionDuringMove(TimeLapse timeLapse) {
 		// we have a traffic jam, so begin protocol
 		this.sendMoveAside(this.getAgent().getName(), Arrays.asList(this.getAgent().getName()),
-				timeLapse.getTime(), this.getAgent().getParcel().get().getWaitingSince(),
+				timeLapse.getTime(), this.getAgent().getParcel().get().getScheduleTime(),
 				this.getAgent().getNextPointOnPath().get(), 0);
 		this.doStateTransition(Optional.of(new CarryingParcelControllingJamState(this.getAgent(), this.getBackLogs(), timeLapse.getTime())));
 	}

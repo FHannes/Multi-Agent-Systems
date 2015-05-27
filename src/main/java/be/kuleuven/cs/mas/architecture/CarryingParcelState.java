@@ -34,7 +34,7 @@ public abstract class CarryingParcelState extends AgentState {
 
 	protected boolean trafficPriorityFunction(String requesterName, long parcelWaitTime)
 			throws IllegalArgumentException, IllegalStateException {
-		int compare = Long.compare(this.getAgent().getParcel().get().getWaitingSince(), parcelWaitTime);
+		int compare = Long.compare(this.getAgent().getParcel().get().getScheduleTime(), parcelWaitTime);
 
 		if (compare < 0) {
 			return true;
