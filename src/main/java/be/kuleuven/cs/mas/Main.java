@@ -3,6 +3,7 @@ package be.kuleuven.cs.mas;
 import be.kuleuven.cs.mas.agent.AgentFactory;
 import be.kuleuven.cs.mas.gradientfield.GradientModel;
 import be.kuleuven.cs.mas.parcel.ParcelFactory;
+import be.kuleuven.cs.mas.parcel.ParcelScheduler;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.render.GradientGraphRoadModelRenderer;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
@@ -20,13 +21,14 @@ import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
 public class Main {
 
     public static final int AGENTS = 20;
-    public static final int PARCELS = 25;
 
     private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
 
     private final FieldStrategy parcelFieldStrategy = new FieldTresholdStrategy(60000, 1D, 5D);
     private final ParcelFactory parcelFactory;
+
+    private ParcelScheduler parcelScheduler;
 
     private final RandomModel rndModel;
     private final CommModel commModel;
@@ -43,11 +45,8 @@ public class Main {
                 .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
                 .build();
 
-        agentFactory = new AgentFactory(agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
-                GraphUtils.getSpawnSites());
-        parcelFactory = new ParcelFactory(parcelFieldStrategy, GraphUtils.getShelfSites(),
-                GraphUtils.getDropOffSites());
-
+        agentFactory = new AgentFactory(agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE, GraphUtils.getSpawnSites());
+        parcelFactory = new ParcelFactory(parcelFieldStrategy, GraphUtils.getShelfSites(), GraphUtils.getDropOffSites());
         rndModel.register(agentFactory);
         rndModel.register(parcelFactory);
 
@@ -58,14 +57,20 @@ public class Main {
                 .addModel(roadModel)
                 .addModel(new GradientModel())
                 .build();
+
+        parcelScheduler = new ParcelScheduler(parcelFactory) {
+            @Override
+            public void generateParcel(TimeAwareParcel parcel) {
+                sim.register(parcel);
+            }
+        };
+        sim.addTickListener(parcelScheduler);
+        rndModel.register(parcelScheduler);
     }
 
     public void populate() {
         for (int i = 0; i < AGENTS; i++) {
             sim.register(agentFactory.makeAgent());
-        }
-        for (int i = 0; i < PARCELS; i++) {
-            sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
         }
     }
 
