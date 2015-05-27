@@ -1,6 +1,8 @@
 package be.kuleuven.cs.mas.agent;
 
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
+import com.github.rinde.rinsim.core.model.rand.RandomProvider;
+import com.github.rinde.rinsim.core.model.rand.RandomUser;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import com.google.common.base.Optional;
@@ -10,20 +12,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class AgentFactory {
+public class AgentFactory implements RandomUser {
 
     public final static double CAPACITY = 1.0D;
 
-    private final RandomGenerator rng;
+    private RandomGenerator rng;
     private final FieldStrategy fieldStrategy;
     private final RoadModel roadModel;
     private final int visualRange;
     private final List<Point> spawnSites;
     private int idCounter = 0;
 
-    public AgentFactory(RandomGenerator rng, FieldStrategy fieldStrategy, RoadModel roadModel, int visualRange,
-                        List<Point> spawnSites) {
-        this.rng = rng;
+    public AgentFactory(FieldStrategy fieldStrategy, RoadModel roadModel, int visualRange, List<Point> spawnSites) {
         this.fieldStrategy = fieldStrategy;
         this.roadModel = roadModel;
         this.visualRange = visualRange;
@@ -42,6 +42,11 @@ public class AgentFactory {
             return new AGVAgent(rng, fieldStrategy, visualRange, freeSpawns.get(rng.nextInt(freeSpawns.size())),
                     String.format("agent%d", ++idCounter), CAPACITY);
         }
+    }
+
+    @Override
+    public void setRandomGenerator(RandomProvider provider) {
+        rng = provider.sharedInstance(AgentFactory.class);
     }
 
 }

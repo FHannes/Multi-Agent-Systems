@@ -11,21 +11,16 @@ import com.github.rinde.rinsim.core.Simulator;
 import com.github.rinde.rinsim.core.model.comm.CommModel;
 import com.github.rinde.rinsim.core.model.pdp.*;
 import com.github.rinde.rinsim.core.model.rand.RandomModel;
-import com.github.rinde.rinsim.core.model.rand.RandomProvider;
-import com.github.rinde.rinsim.core.model.rand.RandomUser;
 import com.github.rinde.rinsim.core.model.road.CollisionGraphRoadModel;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.ui.View;
 import com.github.rinde.rinsim.ui.renderers.AGVRenderer;
 import com.github.rinde.rinsim.ui.renderers.RoadUserRenderer;
-import org.apache.commons.math3.random.RandomGenerator;
 
-public class Main implements RandomUser {
+public class Main {
 
     public static final int AGENTS = 20;
     public static final int PARCELS = 25;
-
-    private RandomGenerator rng;
 
     private final FieldStrategy agentFieldStrategy = new FieldTresholdStrategy(60000, 0.25D, 1.25D);
     private final AgentFactory agentFactory;
@@ -48,12 +43,13 @@ public class Main implements RandomUser {
                 .setVehicleLength(GraphUtils.VEHICLE_LENGTH)
                 .build();
 
-        rndModel.register(this);
-
-        agentFactory = new AgentFactory(rng, agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
+        agentFactory = new AgentFactory(agentFieldStrategy, roadModel, GraphUtils.VISUAL_RANGE,
                 GraphUtils.getSpawnSites());
-        parcelFactory = new ParcelFactory(rng, parcelFieldStrategy, GraphUtils.getShelfSites(),
+        parcelFactory = new ParcelFactory(parcelFieldStrategy, GraphUtils.getShelfSites(),
                 GraphUtils.getDropOffSites());
+
+        rndModel.register(agentFactory);
+        rndModel.register(parcelFactory);
 
         sim = Simulator.builder()
                 .addModel(rndModel)
@@ -68,7 +64,6 @@ public class Main implements RandomUser {
         for (int i = 0; i < AGENTS; i++) {
             sim.register(agentFactory.makeAgent());
         }
-
         for (int i = 0; i < PARCELS; i++) {
             sim.register(parcelFactory.makeParcel(sim.getCurrentTime()));
         }
@@ -95,11 +90,6 @@ public class Main implements RandomUser {
         Main main = new Main();
         main.populate();
         main.run();
-    }
-
-    @Override
-    public void setRandomGenerator(RandomProvider provider) {
-        rng = provider.masterInstance();
     }
 
 }

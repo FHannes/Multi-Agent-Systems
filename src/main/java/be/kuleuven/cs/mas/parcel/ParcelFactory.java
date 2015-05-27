@@ -1,6 +1,8 @@
 package be.kuleuven.cs.mas.parcel;
 
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
+import com.github.rinde.rinsim.core.model.rand.RandomProvider;
+import com.github.rinde.rinsim.core.model.rand.RandomUser;
 import com.github.rinde.rinsim.core.model.road.RoadModel;
 import com.github.rinde.rinsim.geom.Point;
 import org.apache.commons.math3.random.RandomGenerator;
@@ -10,18 +12,16 @@ import java.util.*;
 /**
  * A factory which can be sued to create instances of {@link TimeAwareParcel}.
  */
-public class ParcelFactory {
+public class ParcelFactory implements RandomUser {
 
     public final static double MAGNITUDE = 1.0D;
 
-    private final RandomGenerator rng;
+    private RandomGenerator rng;
     private final FieldStrategy fieldStrategy;
     private final List<Point> storageSites;
     private final List<Point> ioSites;
 
-    public ParcelFactory(RandomGenerator rng, FieldStrategy fieldStrategy, List<Point> storageSites,
-                         List<Point> ioSites) {
-        this.rng = rng;
+    public ParcelFactory(FieldStrategy fieldStrategy, List<Point> storageSites, List<Point> ioSites) {
         this.fieldStrategy = fieldStrategy;
         this.storageSites = new ArrayList<>(storageSites);
         this.ioSites = new ArrayList<>(ioSites);
@@ -68,6 +68,11 @@ public class ParcelFactory {
             parcel = makeParcel(!outgoing, currentTime);
         }
         return parcel;
+    }
+
+    @Override
+    public void setRandomGenerator(RandomProvider provider) {
+        rng = provider.sharedInstance(ParcelFactory.class);
     }
 
 }
