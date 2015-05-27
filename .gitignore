@@ -101,3 +101,9 @@ doc/**
 *.pdf
 *.synctex.gz
 report/.mintedtmp/**
+
+#####################
+# Txt files
+#####################
+
+*.txt
