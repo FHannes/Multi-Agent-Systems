@@ -6,6 +6,7 @@ import be.kuleuven.cs.mas.parcel.ParcelFactory;
 import be.kuleuven.cs.mas.parcel.ParcelScheduler;
 import be.kuleuven.cs.mas.parcel.TimeAwareParcel;
 import be.kuleuven.cs.mas.render.GradientGraphRoadModelRenderer;
+import be.kuleuven.cs.mas.stat.ParcelTracker;
 import be.kuleuven.cs.mas.strategy.FieldStrategy;
 import be.kuleuven.cs.mas.strategy.FieldTresholdStrategy;
 import com.github.rinde.rinsim.core.Simulator;
@@ -29,6 +30,7 @@ public class Main {
     private final ParcelFactory parcelFactory;
 
     private ParcelScheduler parcelScheduler;
+    private ParcelTracker parcelTracker;
 
     private final RandomModel rndModel;
     private final CommModel commModel;
@@ -58,10 +60,18 @@ public class Main {
                 .addModel(new GradientModel())
                 .build();
 
+        parcelTracker = new ParcelTracker() {
+            @Override
+            public void deliveryTresholdReached() {
+                sim.stop();
+            }
+        };
+
         parcelScheduler = new ParcelScheduler(parcelFactory) {
             @Override
             public void generateParcel(TimeAwareParcel parcel) {
                 sim.register(parcel);
+                parcelTracker.track(parcel);
             }
         };
         sim.addTickListener(parcelScheduler);

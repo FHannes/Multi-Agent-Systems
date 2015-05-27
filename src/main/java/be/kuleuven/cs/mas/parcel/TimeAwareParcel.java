@@ -13,6 +13,9 @@ import com.github.rinde.rinsim.geom.Point;
 import com.github.rinde.rinsim.util.TimeWindow;
 import com.google.common.base.Optional;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListener {
 
 	private FieldStrategy fieldStrategy;
@@ -26,6 +29,8 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	private boolean delivered = false;
 	private Optional<Point> position;
 	private GradientModel gradientModel;
+
+	private Set<ParcelObserver> observers = new HashSet<>();
 	
 	TimeAwareParcel(FieldStrategy fieldStrategy, Point startPosition, Point pDestination,
 			double pMagnitude, long currentTime) {
@@ -67,6 +72,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		this.getOwnPDPModel().get().unregister(this);
 		this.setDelivered(true);
 		deliveryTime = time.getEndTime();
+		observers.forEach(o -> o.parcelDelivered(this));
 		// TODO write relevant variables to experiment result 
 	}
 	
@@ -136,6 +142,18 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	@Override
 	public void afterTick(TimeLapse timeLapse) {
 		currentTime = timeLapse.getEndTime();
+	}
+
+	public void registerObserver(ParcelObserver observer) {
+		if (observer != null) {
+			observers.add(observer);
+		}
+	}
+
+	public void unregisterObserver(ParcelObserver observer) {
+		if (observer != null) {
+			observers.remove(observer);
+		}
 	}
 
 }
