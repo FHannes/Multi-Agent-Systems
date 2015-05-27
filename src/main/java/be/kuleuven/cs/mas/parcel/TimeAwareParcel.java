@@ -71,7 +71,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 		
 		this.getOwnPDPModel().get().unregister(this);
 		this.setDelivered(true);
-		deliveryTime = time.getEndTime();
+		deliveryTime = time.getTime();
 		observers.forEach(o -> o.parcelDelivered(this));
 		// TODO write relevant variables to experiment result 
 	}
@@ -132,7 +132,7 @@ public class TimeAwareParcel extends Parcel implements FieldEmitter, TickListene
 	public void notifyPickup(TimeLapse timeLapse) {
 		position = Optional.absent();
 		gradientModel.unregister(this);
-		pickupTime = timeLapse.getEndTime();
+		pickupTime = timeLapse.getTime();
 	}
 
 	@Override
