@@ -1,1 +1,19 @@
 \section{Conclusion}\label{sec:conclusion}
+In this paper, we developed a multi-agent system where agents follow a gradient field constructed by the agents themselves and parcels that are waiting to be delivered. We introduced a reference model where the gradient field strength of both agents and parcels do not change over time. Other models were developed in order to try to provide an answer to the following questions:
+
+\begin{enumerate}
+    \item Does it positively influence the parcel delivery time if a vehicle emits a stronger repulsive field when carrying a parcel that has reached a certain parcel waiting time?
+    \item Does it positively influence the parcel delivery time if there is a linear relationship between the repulsive field emitted by a vehicle and the parcel waiting time of the parcel it carries, if any? Additionally, does it positively influence the same variable if instead there is a linear relationship between the attractive field emitted by a parcel and its parcel waiting time if it has not yet been picked up?
+    \item Does it positively influence the parcel delivery time when a parcel that has not yet been picked up and has reached a certain parcel waiting time emits a stronger attractive field?
+\end{enumerate}
+
+The following observations have been made based on the simulations documented in this paper:
+
+\begin{itemize}
+    \item Concerning question 1, it seems that having agents increase the strength of their repulsive field when carrying a parcel that has reached a certain parcel waiting time may in some cases have a positive influence on the time they spend carrying parcels.
+    \item Concerning question 2, it seems that careful configuration of the coefficient of the linear relationship when having the field strength of the agents depend on the parcel waiting time of the parcel they are carrying, if any, positively influences the time agents spend carrying parcel but negatively influences the time the parcels spend waiting for an agent to pick them up.
+    \item Concerning question 2, it seems careful configuration of the coefficient of the linear relationship when having the field strength of the parcel depend on the time it spends waiting for an agent to pick it up positively influences the parcel delivery time.
+    \item Concerning question 3, it seems that having parcels that have not yet been picked up and have reached a certain parcel waiting time may in some cases positively influence the parcel delivery time.
+\end{itemize}
+
+These observations are not meant to be authoritative. They merely serve to indicate that further investigation of the models introduced in this paper may be warranted.
