@@ -43,7 +43,7 @@ The gradient field in a certain point \emph{gradient-point} can now be calculate
 
 \noindent
 The strength of the gradient field felt by a vehicle can then be expressed as: 
-\\ $\sum\nolimits_{e \in (emitters \setminus sensing vehicle)} \emph{emitter-influence} \times \emph{emitter-strength}$, where \emph{emitter-strength} is dependent on several factors such as the cases addressed by the research questions listed in section \ref{sec:objectives}.
+\\ $\sum\nolimits_{e \in (emitters \setminus sensing vehicle)} \emph{emitter-influence} \times \emph{emitter-strength}$, where \emph{emitter-strength} is dependent on several factors such as the cases addressed by the research questions listed in section \ref{sec:objectives}. Note that \emph{emitter-strength} is always positive for agents and always negative for parcels. Therefore, the smaller the strength value of the gradient field, the more agents are attracted by it.
 
 \subsection{Agent architecture}\label{sec:agentarch}
 The configuration of RinSim specified in section \ref{sec:rinsimconf} does not allow agents to drive through each other. Therefore, there is a need for a protocol that allows the agents to give way to other agents, the ``traffic jam protocol'' specified in section \ref{sec:protocol}. This protocol is central to the architecture proposed in this section. The behavior of the agent at each moment in time depends on the state it is in at that moment. It is assumed that the agent has access to the layout of the warehouse and can therefore always plan the shortest route between any two points. The state of the agent can be one of the following:
