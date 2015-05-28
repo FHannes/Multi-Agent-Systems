@@ -1,14 +1,17 @@
 \section{Introduction}\label{sec:intro}
-In this paper, we investigate a system of vehicles that carry parcels to their destinations in a warehouse. More specifically, the assignment of parcels to vehicles is done based on the principle of a \textbf{gradient field}. Both vehicles and parcels influence this gradient field: vehicles repel other vehicles while parcels attract vehicles. Our interest is in configuring this gradient field, as outlined in section \ref{sec:objectives}. The implementation of this system happened with the use of \textbf{RinSim} \cite{rinsim}, a logistics simulator developed at the iMinds-DistriNet group at the department of Computer Science, KU Leuven, Belgium.
+In this paper, we investigate a system of vehicles that carry parcels to their destinations in a warehouse. More specifically, the assignment of parcels to vehicles is done based on the principle of a \textbf{gradient field}. Both vehicles and parcels influence this gradient field: vehicles repel other vehicles while parcels attract vehicles. Our interest is in trying different configurations of this gradient field, as outlined in section \ref{sec:objectives}. The implementation of this system happened with the use of \textbf{RinSim} \cite{rinsim}, a logistics simulator developed at the iMinds-DistriNet group at the department of Computer Science, KU Leuven, Belgium.
 
 \subsection{Objectives}\label{sec:objectives}
 We propose a reference model where the gradient field contributions of both vehicles and parcels do not change in any circumstance. In that model, we measure for each parcel the time it takes from arrival to the model (more concretely, activation of its attractive field) to delivery to its destination (hereafter referred to as the ``parcel delivery time''). For example, a parcel may be present in the warehouse and make it known that it wishes to be carried to a certain output port of the warehouse. It can also be the case that a parcel arrives from the outside and must be stored on a certain position on a certain shelf of the warehouse.
 There are three cases where we wish to investigate the effects of deviations from this model on the parcel delivery time. We therefore seek an answer to the following three research questions, where ``parcel waiting time'' indicates the difference between the current time and the time when it arrived to the model (thus only applicable to parcels that have not yet been delivered to their destination):
+
 \begin{enumerate}
 \item Does it positively influence the parcel delivery time if a vehicle emits a stronger repulsive field when carrying a parcel that has reached a certain parcel waiting time?
 \item Does it positively influence the parcel delivery time if there is a linear relationship between the repulsive field emitted by a vehicle and the parcel waiting time of the parcel it carries, if any?
 \item Does it positively influence the parcel delivery time when a parcel that has not yet been picked up and has reached a certain parcel waiting time emits a stronger attractive field?
 \end{enumerate}
+
+Note that, since the vehicles want to get the parcels to their destination as quickly as possible and therefore are cooperative, each of the cases in the research questions are \textbf{conventions}: if we also consider the parcels to be agents, then in each case the agents use certain information to perform acts in an attempt to improve the parcel delivery time.
 
 \subsection{Hypotheses}\label{sec:hypotheses}
 The research questions listed in section \ref{sec:objectives} are easily translated into hypotheses. We aim to reject the following null hypotheses:
