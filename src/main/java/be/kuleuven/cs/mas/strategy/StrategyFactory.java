@@ -6,8 +6,8 @@ public class StrategyFactory {
         return new ConstantValueStrategy(strength);
     }
 
-    public FieldStrategy makeTimeStrategy(long timeUnit) {
-        return new FieldTimeStrategy(timeUnit);
+    public FieldStrategy makeTimeStrategy(long timeUnit, double baseStrength) {
+        return new FieldTimeStrategy(timeUnit, baseStrength);
     }
 
     public FieldStrategy makeTresholdStrategy(long treshold, double baseStrength, double priorityStrength) {
@@ -27,12 +27,13 @@ public class StrategyFactory {
     }
 
     private FieldStrategy parseTimeStrategy(String[] params) {
-        if (params.length < 2) {
+        if (params.length < 3) {
             return null;
         }
         try {
-            long strength = Long.parseLong(params[1]);
-            return makeTimeStrategy(strength);
+            long timeUnit = Long.parseLong(params[1]);
+            double baseStrength = Double.parseDouble(params[2]);
+            return makeTimeStrategy(timeUnit, baseStrength);
         } catch (NumberFormatException e) {
             return null;
         }
